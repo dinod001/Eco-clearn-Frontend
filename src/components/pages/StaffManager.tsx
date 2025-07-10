@@ -1,10 +1,112 @@
-import React, { useState, useEffect } from 'react';
-import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, UserIcon, PhoneIcon, MailIcon, MapPinIcon, CalendarIcon, UserPlusIcon, UserMinusIcon, CakeIcon, KeyIcon, EyeIcon, EyeOffIcon, ShieldIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { SearchIcon, EditIcon, TrashIcon, UserIcon, PhoneIcon, MailIcon, MapPinIcon, UserPlusIcon, CakeIcon, KeyIcon, EyeIcon, EyeOffIcon, ShieldIcon, CheckCircleIcon, XCircleIcon, AlertCircleIcon, XIcon, UsersIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import Card from '../common/Card';
 import Button from '../common/Button';
-import Table from '../common/Table';
 import Modal from '../common/Modal';
+
+// Toast Notification Types
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+interface Toast {
+  id: string;
+  type: ToastType;
+  title: string;
+  message: string;
+}
+
+// Toast Component
+const ToastNotification = ({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) => {
+  const getToastIcon = () => {
+    switch (toast.type) {
+      case 'success':
+        return <CheckCircleIcon size={22} className="text-green-600" />;
+      case 'error':
+        return <XCircleIcon size={22} className="text-red-600" />;
+      case 'warning':
+        return <AlertCircleIcon size={22} className="text-yellow-600" />;
+      default:
+        return <AlertCircleIcon size={22} className="text-blue-600" />;
+    }
+  };
+
+  const getToastColors = () => {
+    switch (toast.type) {
+      case 'success':
+        return 'bg-green-50 border-green-200 text-green-900 shadow-green-100';
+      case 'error':
+        return 'bg-red-50 border-red-200 text-red-900 shadow-red-100';
+      case 'warning':
+        return 'bg-yellow-50 border-yellow-200 text-yellow-900 shadow-yellow-100';
+      default:
+        return 'bg-blue-50 border-blue-200 text-blue-900 shadow-blue-100';
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onRemove(toast.id);
+    }, 6000);
+
+    return () => clearTimeout(timer);
+  }, [toast.id, onRemove]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 300, scale: 0.8 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 300, scale: 0.8 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className={`min-w-[320px] max-w-md w-full ${getToastColors()} border rounded-xl shadow-xl p-4 mb-2 backdrop-blur-sm`}
+    >
+      <div className="flex items-start">
+        <div className="flex-shrink-0 mt-0.5">
+          {getToastIcon()}
+        </div>
+        <div className="ml-3 w-0 flex-1 pt-0.5">
+          <p className="text-sm font-bold">{toast.title}</p>
+          <p className="text-sm mt-1 opacity-90 leading-relaxed">{toast.message}</p>
+        </div>
+        <div className="ml-4 flex-shrink-0 flex">
+          <button
+            className="inline-flex rounded-md p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all duration-200"
+            onClick={() => onRemove(toast.id)}
+          >
+            <span className="sr-only">Dismiss</span>
+            <XIcon size={16} />
+          </button>
+        </div>
+      </div>
+      
+      <motion.div
+        className="mt-3 h-1 bg-black bg-opacity-10 rounded-full overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        <motion.div
+          className="h-full bg-current opacity-30 rounded-full"
+          initial={{ width: "100%" }}
+          animate={{ width: "0%" }}
+          transition={{ duration: 6, ease: "linear" }}
+        />
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Toast Container Component
+const ToastContainer = ({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) => {
+  return (
+    <div className="fixed top-4 right-4 z-[9999] space-y-2">
+      <AnimatePresence mode="popLayout">
+        {toasts.map((toast) => (
+          <ToastNotification key={toast.id} toast={toast} onRemove={onRemove} />
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+};
 interface StaffMember {
   id: string;
   name: string;
@@ -31,38 +133,57 @@ const StaffManager = () => {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Toast helper functions
+  const addToast = (type: ToastType, title: string, message: string) => {
+    const newToast: Toast = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      title,
+      message,
+    };
+    setToasts(prev => [...prev, newToast]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+
+  const fetchStaffMembers = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await axios.get('http://localhost:5000/api/personnel/getAllPersonnels', {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      
+      const mapped = (res.data.users || []).map((person: any) => ({
+        id: person._id,
+        name: person.fullName,
+        gender: person.gender,
+        age: person.age,
+        birthday: person.birthDay,
+        nic: person.nic,
+        phone: person.contact,
+        address: person.adress,
+        email: person.email,
+        username: person.userName,
+        password: person.password,
+        role: person.role,
+      }));
+      setStaffMembers(mapped);
+    } catch (err) {
+      addToast('error', 'Failed to Load Personnel', 'Unable to fetch personnel data from the server.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    axios.get('http://localhost:5000/api/personnel/getAllPersonnels', {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : undefined,
-      },
-    })
-      .then(res => {
-        console.log('Backend response:', res.data); // Debug: log backend response
-        // Map backend fields to frontend fields (for this response shape)
-        const mapped = (res.data.users || []).map((person: any) => ({
-          id: person._id,
-          name: person.fullName,
-          gender: person.gender,
-          age: person.age,
-          birthday: person.birthDay,
-          nic: person.nic,
-          phone: person.contact,
-          address: person.adress,
-          email: person.email,
-          username: person.userName,
-          password: person.password,
-          role: person.role,
-        }));
-        setStaffMembers(mapped);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Fetch error:', err); // Debug: log error
-        setLoading(false);
-      });
+    fetchStaffMembers();
   }, []);
 
   // Filter staff members based on search term
@@ -79,188 +200,354 @@ const StaffManager = () => {
     );
   });
 
-  return <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-800">
-          Personnel Management
-        </h1>
-        <div className="flex gap-2 items-center">
-          <input
-            type="text"
-            placeholder="Search personnel..."
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{ minWidth: 180 }}
-          />
-          <Button variant="primary" icon={<UserPlusIcon size={18} />} onClick={() => setIsAddModalOpen(true)}>
-            Add New Personnel
-          </Button>
-        </div>
-      </div>
-      <Card>
-        <div className="overflow-x-auto w-full">
-          <table className="min-w-full bg-white border border-gray-200 rounded-lg text-sm md:text-base">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-2 md:px-4 py-2 border-b whitespace-nowrap">Name</th>
-                <th className="px-2 md:px-4 py-2 border-b whitespace-nowrap">Position</th>
-                <th className="px-2 md:px-4 py-2 border-b whitespace-nowrap">Department</th>
-                <th className="px-2 md:px-4 py-2 border-b whitespace-nowrap">Email</th>
-                <th className="px-2 md:px-4 py-2 border-b whitespace-nowrap">Phone</th>
-                <th className="px-2 md:px-4 py-2 border-b whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-6 text-gray-500">
-                    Loading...
-                  </td>
-                </tr>
-              ) : filteredStaff.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-6 text-gray-500">
-                    No personnel found.
-                  </td>
-                </tr>
-              ) : filteredStaff.map(staff => (
-                <tr key={staff.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-2 md:px-4 py-2 border-b whitespace-nowrap max-w-[160px] truncate">{staff.name}</td>
-                  <td className="px-2 md:px-4 py-2 border-b whitespace-nowrap max-w-[120px] truncate">{staff.role}</td>
-                  <td className="px-2 md:px-4 py-2 border-b whitespace-nowrap max-w-[160px] truncate">{staff.address}</td>
-                  <td className="px-2 md:px-4 py-2 border-b whitespace-nowrap max-w-[180px] truncate">{staff.email}</td>
-                  <td className="px-2 md:px-4 py-2 border-b whitespace-nowrap max-w-[120px] truncate">{staff.phone}</td>
-                  <td className="px-2 md:px-4 py-2 border-b whitespace-nowrap">
-                    <div className="flex flex-col md:flex-row gap-2 md:gap-1">
-                      <Button variant="outline" size="sm" icon={<EyeIcon size={14} />} onClick={() => {
-                        setSelectedStaff(staff);
-                        setIsViewModalOpen(true);
-                      }}>
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm" icon={<EditIcon size={14} />} onClick={() => {
-        // Always set the backend id for update
-        setSelectedStaff(staff);
-        setIsEditModalOpen(true);
-      }}>
-                        Edit
-                      </Button>
-                      <Button variant="danger" size="sm" icon={<TrashIcon size={14} />} onClick={() => {
-                        setSelectedStaff(staff);
-                        setIsDeleteModalOpen(true);
-                      }}>
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-      {/* View Staff Modal */}
-      <Modal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} title="Personnel Details" size="lg">
-        {selectedStaff && <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
-              <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                <UserIcon size={32} className="text-gray-500" />
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
+            <div className="flex items-center space-x-4">
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 rounded-xl">
+                <UsersIcon size={28} className="text-white" />
               </div>
-              <div className="text-center sm:text-left">
-                <h3 className="text-xl font-medium text-gray-800">{selectedStaff.name}</h3>
-                <p className="text-gray-600">
-                  {selectedStaff.role === 'Admin' ? 'Administrator' : 'Staff'}
-                </p>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  Personnel Management
+                </h1>
+                <p className="text-gray-500 mt-1">Manage your team members and their access</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <div className="relative">
+                <SearchIcon size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search personnel..."
+                  className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200 w-full sm:w-64"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Button 
+                variant="primary" 
+                icon={<UserPlusIcon size={18} />} 
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                Add Personnel
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+          >
+            <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium mb-2 text-gray-700">
+                <p className="text-sm font-medium text-gray-500">Total Personnel</p>
+                <p className="text-2xl font-bold text-gray-900">{staffMembers.length}</p>
+              </div>
+              <div className="bg-indigo-100 p-3 rounded-full">
+                <UsersIcon size={24} className="text-indigo-600" />
+              </div>
+            </div>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Administrators</p>
+                <p className="text-2xl font-bold text-purple-600">{staffMembers.filter(s => s.role === 'Admin').length}</p>
+              </div>
+              <div className="bg-purple-100 p-3 rounded-full">
+                <ShieldIcon size={24} className="text-purple-600" />
+              </div>
+            </div>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Staff Members</p>
+                <p className="text-2xl font-bold text-blue-600">{staffMembers.filter(s => s.role === 'Staff').length}</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full">
+                <UserIcon size={24} className="text-blue-600" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Personnel Table */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-800">Personnel Directory</h2>
+            <p className="text-gray-500 mt-1">View and manage all personnel information</p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Personnel</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
+                        <p className="text-gray-500">Loading personnel...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredStaff.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center">
+                        <UsersIcon size={48} className="text-gray-300 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-600 mb-2">No personnel found</h3>
+                        <p className="text-gray-500">No personnel match your search criteria.</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredStaff.map((staff, index) => (
+                    <motion.tr 
+                      key={staff.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                            {staff.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{staff.name}</div>
+                            <div className="text-sm text-gray-500">{staff.username}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                          staff.role === 'Admin' 
+                            ? 'bg-purple-100 text-purple-800' 
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {staff.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{staff.email}</div>
+                        <div className="text-sm text-gray-500">{staff.phone}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">{staff.address}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            icon={<EyeIcon size={14} />} 
+                            onClick={() => {
+                              setSelectedStaff(staff);
+                              setIsViewModalOpen(true);
+                            }}
+                            className="hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all duration-200"
+                          >
+                            View
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            icon={<EditIcon size={14} />} 
+                            onClick={() => {
+                              setSelectedStaff(staff);
+                              setIsEditModalOpen(true);
+                            }}
+                            className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200"
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            variant="danger" 
+                            size="sm" 
+                            icon={<TrashIcon size={14} />} 
+                            onClick={() => {
+                              setSelectedStaff(staff);
+                              setIsDeleteModalOpen(true);
+                            }}
+                            className="hover:bg-red-50 hover:border-red-300 transition-all duration-200"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {/* View Staff Modal */}
+      <Modal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} title="Personnel Details" size="lg">
+        {selectedStaff && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl">
+              <div className="h-20 w-20 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                {selectedStaff.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="text-center sm:text-left">
+                <h3 className="text-2xl font-bold text-gray-800">{selectedStaff.name}</h3>
+                <p className="text-lg text-gray-600 mb-2">{selectedStaff.role}</p>
+                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+                  selectedStaff.role === 'Admin' 
+                    ? 'bg-purple-100 text-purple-800' 
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {selectedStaff.role === 'Admin' ? 'Administrator' : 'Staff Member'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h4 className="font-semibold mb-4 text-gray-800 text-lg flex items-center">
+                  <UserIcon size={20} className="mr-2 text-indigo-600" />
                   Personal Information
                 </h4>
-                <div className="space-y-2">
-                  <div className="flex items-center text-gray-600">
-                    <span className="w-5 h-5 mr-2 flex items-center justify-center text-gray-400">
-                      <span className="font-medium">G</span>
+                <div className="space-y-3">
+                  <div className="flex items-center text-gray-700">
+                    <span className="w-6 h-6 mr-3 flex items-center justify-center text-gray-500 bg-white rounded-full text-sm font-semibold">
+                      G
                     </span>
-                    <span>Gender: {selectedStaff.gender}</span>
+                    <span><strong>Gender:</strong> {selectedStaff.gender}</span>
                   </div>
-                  <div className="flex items-center text-gray-600">
-                    <span className="w-5 h-5 mr-2 flex items-center justify-center text-gray-400">
-                      <span className="font-medium">A</span>
+                  <div className="flex items-center text-gray-700">
+                    <span className="w-6 h-6 mr-3 flex items-center justify-center text-gray-500 bg-white rounded-full text-sm font-semibold">
+                      A
                     </span>
-                    <span>Age: {selectedStaff.age} years</span>
+                    <span><strong>Age:</strong> {selectedStaff.age} years</span>
                   </div>
-                  <div className="flex items-center text-gray-600">
-                    <CakeIcon size={16} className="mr-2 text-gray-400" />
+                  <div className="flex items-center text-gray-700">
+                    <CakeIcon size={18} className="mr-3 text-gray-500" />
                     <span>
-                      Birthday:{' '}
+                      <strong>Birthday:</strong>{' '}
                       {new Date(selectedStaff.birthday).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="flex items-center text-gray-600">
-                    <ShieldIcon size={16} className="mr-2 text-gray-400" />
-                    <span>NIC: {selectedStaff.nic}</span>
+                  <div className="flex items-center text-gray-700">
+                    <ShieldIcon size={18} className="mr-3 text-gray-500" />
+                    <span><strong>NIC:</strong> {selectedStaff.nic}</span>
                   </div>
                 </div>
               </div>
-              <div>
-                <h4 className="font-medium mb-2 text-gray-700">
+              
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h4 className="font-semibold mb-4 text-gray-800 text-lg flex items-center">
+                  <PhoneIcon size={20} className="mr-2 text-indigo-600" />
                   Contact Information
                 </h4>
-                <div className="space-y-2">
-                  <div className="flex items-center text-gray-600">
-                    <MailIcon size={16} className="mr-2 text-gray-400" />
-                    <span>{selectedStaff.email}</span>
+                <div className="space-y-3">
+                  <div className="flex items-center text-gray-700">
+                    <MailIcon size={18} className="mr-3 text-gray-500" />
+                    <span className="break-all">{selectedStaff.email}</span>
                   </div>
-                  <div className="flex items-center text-gray-600">
-                    <PhoneIcon size={16} className="mr-2 text-gray-400" />
+                  <div className="flex items-center text-gray-700">
+                    <PhoneIcon size={18} className="mr-3 text-gray-500" />
                     <span>{selectedStaff.phone}</span>
                   </div>
-                  <div className="flex items-start text-gray-600">
-                    <MapPinIcon size={16} className="mr-2 mt-1 text-gray-400" />
+                  <div className="flex items-start text-gray-700">
+                    <MapPinIcon size={18} className="mr-3 mt-1 text-gray-500 flex-shrink-0" />
                     <span>{selectedStaff.address}</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="border-t border-gray-200 pt-4">
-              <h4 className="font-medium mb-2 text-gray-700">System Access</h4>
-              <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                <div>
-                  <div className="flex items-center mb-2">
-                    <KeyIcon size={16} className="mr-1 text-gray-400" />
-                    <span className="font-medium text-gray-700">Username:</span>
-                    <span className="ml-2">{selectedStaff.username}</span>
+            
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6">
+              <h4 className="font-semibold mb-4 text-gray-800 text-lg flex items-center">
+                <KeyIcon size={20} className="mr-2 text-indigo-600" />
+                System Access
+              </h4>
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <span className="font-medium text-gray-700 mr-2">Username:</span>
+                    <span className="px-3 py-1 bg-white rounded-lg text-gray-800 font-mono">{selectedStaff.username}</span>
                   </div>
                   <div className="flex items-center">
-                    <KeyIcon size={16} className="mr-1 text-gray-400" />
-                    <span className="font-medium text-gray-700">Password:</span>
-                    <span className="ml-2">••••••••</span>
+                    <span className="font-medium text-gray-700 mr-2">Password:</span>
+                    <span className="px-3 py-1 bg-white rounded-lg text-gray-400">••••••••</span>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" icon={<KeyIcon size={14} />}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  icon={<KeyIcon size={14} />}
+                  className="hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all duration-200"
+                >
                   Reset Password
                 </Button>
               </div>
             </div>
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-              <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+            
+            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsViewModalOpen(false)}
+                className="px-6 py-3 hover:bg-gray-50 transition-all duration-200"
+              >
                 Close
               </Button>
-              <Button variant="primary" onClick={() => {
-            setIsViewModalOpen(false);
-            setIsEditModalOpen(true);
-          }}>
+              <Button 
+                variant="primary" 
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  setIsEditModalOpen(true);
+                }}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
                 Edit Personnel
               </Button>
             </div>
-          </div>}
+          </div>
+        )}
       </Modal>
       {/* Add Staff Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Personnel" size="lg">
-        <form className="space-y-4" onSubmit={async (e) => {
+        <div className="mb-6">
+          <p className="text-gray-600">Add a new team member with their personal and system access information.</p>
+        </div>
+        <form className="space-y-6" onSubmit={async (e) => {
           e.preventDefault();
           const form = e.target as HTMLFormElement;
           const formData = new FormData(form);
@@ -279,55 +566,43 @@ const StaffManager = () => {
           };
           try {
             const token = localStorage.getItem('authToken');
-            const res = await axios.post('http://localhost:5000/api/personnel/register', { personnelInfo }, {
+            await axios.post('http://localhost:5000/api/personnel/register', { personnelInfo }, {
               headers: {
                 Authorization: token ? `Bearer ${token}` : undefined,
               },
             });
-            // Optionally, refresh the staff list after successful add
+            
+            addToast('success', 'Personnel Added!', `${personnelInfo.fullName} has been successfully added to the team.`);
             setIsAddModalOpen(false);
-            // Refetch personnel list
-            setLoading(true);
-            axios.get('http://localhost:5000/api/personnel/getAllPersonnels', {
-              headers: {
-                Authorization: token ? `Bearer ${token}` : undefined,
-              },
-            })
-              .then(res => {
-                const mapped = (res.data.users || []).map((person: any) => ({
-                  id: person._id,
-                  name: person.fullName,
-                  gender: person.gender,
-                  age: person.age,
-                  birthday: person.birthDay,
-                  nic: person.nic,
-                  phone: person.contact,
-                  address: person.adress,
-                  email: person.email,
-                  username: person.userName,
-                  password: person.password,
-                  role: person.role,
-                }));
-                setStaffMembers(mapped);
-                setLoading(false);
-              })
-              .catch(() => setLoading(false));
+            fetchStaffMembers();
           } catch (err) {
-            alert('Failed to add personnel.');
+            addToast('error', 'Failed to Add Personnel', 'There was an error adding the personnel. Please try again.');
           }
         }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="fullName" className="block text-sm font-semibold text-gray-700 mb-2">
                 Full Name
               </label>
-              <input type="text" id="fullName" name="fullName" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Enter full name" />
+              <input 
+                type="text" 
+                id="fullName" 
+                name="fullName" 
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-400" 
+                placeholder="Enter full name" 
+                required
+              />
             </div>
             <div>
-              <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="gender" className="block text-sm font-semibold text-gray-700 mb-2">
                 Gender
               </label>
-              <select id="gender" name="gender" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+              <select 
+                id="gender" 
+                name="gender" 
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+                required
+              >
                 <option value="">Select gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -397,11 +672,19 @@ const StaffManager = () => {
               <textarea id="address" name="adress" rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Enter address"></textarea>
             </div>
           </div>
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsAddModalOpen(false)}
+              className="px-6 py-3 hover:bg-gray-50 transition-all duration-200"
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="primary">
+            <Button 
+              type="submit" 
+              variant="primary"
+              className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200"
+            >
               Add Personnel
             </Button>
           </div>
@@ -409,7 +692,12 @@ const StaffManager = () => {
       </Modal>
       {/* Edit Staff Modal */}
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Personnel" size="lg">
-        {selectedStaff && <form className="space-y-4" onSubmit={async (e) => {
+        {selectedStaff && (
+          <div>
+            <div className="mb-6">
+              <p className="text-gray-600">Update personnel information below. Changes will be reflected immediately.</p>
+            </div>
+            <form className="space-y-6" onSubmit={async (e) => {
           e.preventDefault();
           const form = e.target as HTMLFormElement;
           const formData = new FormData(form);
@@ -450,36 +738,11 @@ const StaffManager = () => {
                 },
               }
             );
+            addToast('success', 'Personnel Updated!', `${selectedStaff.name}'s information has been successfully updated.`);
             setIsEditModalOpen(false);
-            // Refetch personnel list
-            axios.get('http://localhost:5000/api/personnel/getAllPersonnels', {
-              headers: {
-                Authorization: token ? `Bearer ${token}` : undefined,
-              },
-            })
-              .then(res => {
-                const mapped = (res.data.users || []).map((person: any) => ({
-                  id: person._id,
-                  name: person.fullName,
-                  gender: person.gender,
-                  age: person.age,
-                  birthday: person.birthDay,
-                  nic: person.nic,
-                  phone: person.contact,
-                  address: person.adress,
-                  email: person.email,
-                  username: person.userName,
-                  password: person.password,
-                  role: person.role,
-                }));
-                setStaffMembers(mapped);
-                setLoading(false);
-              })
-              .catch(() => setLoading(false));
+            fetchStaffMembers();
           } catch (err: any) {
-            setLoading(false);
-            console.error('Update error:', err?.response?.data || err);
-            alert('Failed to update personnel. ' + (err?.response?.data?.message || ''));
+            addToast('error', 'Failed to Update Personnel', 'There was an error updating the personnel information.');
           }
         }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -551,74 +814,77 @@ const StaffManager = () => {
               <textarea id="edit-address" name="edit-address" rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" defaultValue={selectedStaff.address}></textarea>
             </div>
           </div>
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsEditModalOpen(false)}
+              className="px-6 py-3 hover:bg-gray-50 transition-all duration-200"
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="primary">
+            <Button 
+              type="submit" 
+              variant="primary"
+              className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200"
+            >
               Update Personnel
             </Button>
           </div>
-        </form>}
+        </form>
+          </div>
+        )}
       </Modal>
       {/* Delete Confirmation Modal */}
       <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete Personnel">
-        {selectedStaff && <div>
-            <p className="text-gray-600">
-              Are you sure you want to delete the personnel record for{' '}
-              <span className="font-medium">{selectedStaff.name}</span>
-              ? This action cannot be undone.
+        {selectedStaff && (
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+              <TrashIcon size={32} className="text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Are you sure you want to delete this personnel record?
+            </h3>
+            <p className="text-gray-600 mb-1">
+              You're about to delete <strong>{selectedStaff.name}</strong>
             </p>
-            <div className="flex justify-end space-x-3 mt-6">
-              <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+            <p className="text-sm text-gray-500 mb-8">
+              This action cannot be undone and will remove all access permissions.
+            </p>
+            <div className="flex justify-center space-x-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-6 py-3 hover:bg-gray-50 transition-all duration-200"
+              >
                 Cancel
               </Button>
-              <Button variant="danger" onClick={async () => {
-                if (!selectedStaff) return;
-                setLoading(true);
-                try {
-                  const token = localStorage.getItem('authToken');
-                  await axios.delete(`http://localhost:5000/api/personnel/deletePersonnel/${selectedStaff.id}`, {
-                    headers: {
-                      Authorization: token ? `Bearer ${token}` : undefined,
-                    },
-                  });
-                  setIsDeleteModalOpen(false);
-                  // Refetch personnel list
-                  axios.get('http://localhost:5000/api/personnel/getAllPersonnels', {
-                    headers: {
-                      Authorization: token ? `Bearer ${token}` : undefined,
-                    },
-                  })
-                    .then(res => {
-                      const mapped = (res.data.users || []).map((person: any) => ({
-                        id: person._id,
-                        name: person.fullName,
-                        gender: person.gender,
-                        age: person.age,
-                        birthday: person.birthDay,
-                        nic: person.nic,
-                        phone: person.contact,
-                        address: person.adress,
-                        email: person.email,
-                        username: person.userName,
-                        password: person.password,
-                        role: person.role,
-                      }));
-                      setStaffMembers(mapped);
-                      setLoading(false);
-                    })
-                    .catch(() => setLoading(false));
-                } catch (err) {
-                  setLoading(false);
-                  alert('Failed to delete personnel.');
-                }
-              }}>
-                Delete
+              <Button 
+                variant="danger" 
+                onClick={async () => {
+                  if (!selectedStaff) return;
+                  try {
+                    const token = localStorage.getItem('authToken');
+                    await axios.delete(`http://localhost:5000/api/personnel/deletePersonnel/${selectedStaff.id}`, {
+                      headers: {
+                        Authorization: token ? `Bearer ${token}` : undefined,
+                      },
+                    });
+                    addToast('success', 'Personnel Deleted!', `${selectedStaff.name} has been successfully removed from the system.`);
+                    setIsDeleteModalOpen(false);
+                    fetchStaffMembers();
+                  } catch (err) {
+                    addToast('error', 'Failed to Delete Personnel', 'There was an error deleting the personnel record.');
+                  }
+                }}
+                className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                Delete Personnel
               </Button>
             </div>
-          </div>}
+          </div>
+        )}
       </Modal>
-    </div>;
+    </div>
+  );
 };
 export default StaffManager;

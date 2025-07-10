@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Toaster } from 'react-hot-toast';
 // Auth Provider
 import { AuthProvider, useAuth } from './components/auth/AuthContext';
 import LoginPage from './components/auth/LoginPage';
@@ -29,6 +30,27 @@ const ProtectedRoute = ({
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+  return <>{children}</>;
+};
+
+// Role-based protected route component
+const RoleProtectedRoute = ({
+  children,
+  requiredRole
+}: {
+  children: React.ReactNode;
+  requiredRole: string;
+}) => {
+  const { isAuthenticated, hasAccess } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (!hasAccess(requiredRole)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
   return <>{children}</>;
 };
 // Admin Layout component
@@ -100,11 +122,11 @@ export function App() {
                   <ServiceRequestManager />
                 </AdminLayout>
               </ProtectedRoute>} />
-          <Route path="/services" element={<ProtectedRoute>
+          <Route path="/services" element={<RoleProtectedRoute requiredRole="services">
                 <AdminLayout>
                   <ServicesManager />
                 </AdminLayout>
-              </ProtectedRoute>} />
+              </RoleProtectedRoute>} />
           <Route path="/staff" element={<ProtectedRoute>
                 <AdminLayout>
                   <StaffManager />
@@ -125,12 +147,32 @@ export function App() {
                   <NotificationManager />
                 </AdminLayout>
               </ProtectedRoute>} />
-          <Route path="/employees" element={<ProtectedRoute>
+          <Route path="/employees" element={<RoleProtectedRoute requiredRole="employees">
                 <AdminLayout>
                   <EmployeeManager />
                 </AdminLayout>
-              </ProtectedRoute>} />
+              </RoleProtectedRoute>} />
         </Routes>
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              style: {
+                background: '#10b981',
+              },
+            },
+            error: {
+              style: {
+                background: '#ef4444',
+              },
+            },
+          }}
+        />
       </Router>
     </AuthProvider>;
 }
