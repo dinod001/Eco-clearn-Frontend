@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { SearchIcon, FilterIcon, EditIcon, TrashIcon, ClipboardCheckIcon, PhoneIcon, MapPinIcon, CalendarIcon, DollarSignIcon, AlertCircleIcon, UserIcon, CheckCircleIcon, XCircleIcon, XIcon } from 'lucide-react';
+import { SearchIcon, EditIcon, TrashIcon, ClipboardCheckIcon, PhoneIcon, MapPinIcon, CalendarIcon, DollarSignIcon, AlertCircleIcon, UserIcon, CheckCircleIcon, XCircleIcon, XIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import Table from '../common/Table';
 import Modal from '../common/Modal';
 import axios from 'axios';
+import { pageAnimations } from '../../utils/animations';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -315,81 +316,7 @@ const ServiceRequestManager = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 p-6">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Enhanced Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
-          >
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <ClipboardCheckIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Service Books</p>
-                <p className="text-2xl font-bold text-gray-900">{serviceRequests.length}</p>
-              </div>
-            </div>
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
-          >
-            <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-xl">
-                <AlertCircleIcon className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {serviceRequests.filter(r => r.status === 'Pending').length}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
-          >
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <ClipboardCheckIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">In Progress</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {serviceRequests.filter(r => r.status === 'In Progress').length}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
-          >
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-xl">
-                <CheckCircleIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {serviceRequests.filter(r => r.status === 'Completed').length}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Enhanced Header */}
+        {/* Enhanced Header - Moved to Top */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -404,36 +331,167 @@ const ServiceRequestManager = () => {
               </div>
               <div>
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-green-900 to-emerald-900 bg-clip-text text-transparent">
-                  Service Books Management
+                  Service Request Management
                 </h1>
                 <p className="text-gray-600 mt-2 text-lg">
                   Manage and track all service bookings and requests
                 </p>
               </div>
             </div>
-            
-            {/* Search Bar - Right Side */}
-            <div className="flex-shrink-0 w-full max-w-md">
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="Search service books..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50"
-                />
-                <SearchIcon size={20} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              </div>
-            </div>
           </div>
         </motion.div>
 
-        {/* Enhanced Main Content */}
+        {/* Enhanced Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Requests</p>
+                <p className="text-3xl font-bold text-gray-900 mb-2">{serviceRequests.length}</p>
+                <div className="flex items-center text-xs text-gray-500">
+                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                  All service bookings
+                </div>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                <ClipboardCheckIcon className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            {/* Progress indicator */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Service Portfolio</span>
+                <span className="text-green-600 font-medium">Active</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                <div className="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full transition-all duration-500" style={{width: '100%'}}></div>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Pending</p>
+                <p className="text-3xl font-bold text-yellow-600 mb-2">
+                  {serviceRequests.filter(r => r.status === 'Pending').length}
+                </p>
+                <div className="flex items-center text-xs text-gray-500">
+                  <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
+                  Awaiting processing
+                </div>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                <AlertCircleIcon className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            {/* Progress indicator */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Pending Rate</span>
+                <span className="text-yellow-600 font-medium">
+                  {serviceRequests.length > 0 ? Math.round((serviceRequests.filter(r => r.status === 'Pending').length / serviceRequests.length) * 100) : 0}%
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                <div 
+                  className="bg-gradient-to-r from-yellow-400 to-orange-500 h-1.5 rounded-full transition-all duration-500" 
+                  style={{width: `${serviceRequests.length > 0 ? Math.round((serviceRequests.filter(r => r.status === 'Pending').length / serviceRequests.length) * 100) : 0}%`}}
+                ></div>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">In Progress</p>
+                <p className="text-3xl font-bold text-blue-600 mb-2">
+                  {serviceRequests.filter(r => r.status === 'In Progress').length}
+                </p>
+                <div className="flex items-center text-xs text-gray-500">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+                  Currently active
+                </div>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                <ClipboardCheckIcon className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            {/* Progress indicator */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Progress Rate</span>
+                <span className="text-blue-600 font-medium">
+                  {serviceRequests.length > 0 ? Math.round((serviceRequests.filter(r => r.status === 'In Progress').length / serviceRequests.length) * 100) : 0}%
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 h-1.5 rounded-full transition-all duration-500" 
+                  style={{width: `${serviceRequests.length > 0 ? Math.round((serviceRequests.filter(r => r.status === 'In Progress').length / serviceRequests.length) * 100) : 0}%`}}
+                ></div>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Completed</p>
+                <p className="text-3xl font-bold text-green-600 mb-2">
+                  {serviceRequests.filter(r => r.status === 'Completed').length}
+                </p>
+                <div className="flex items-center text-xs text-gray-500">
+                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                  Successfully finished
+                </div>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                <CheckCircleIcon className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            {/* Progress indicator */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Completion Rate</span>
+                <span className="text-green-600 font-medium">
+                  {serviceRequests.length > 0 ? Math.round((serviceRequests.filter(r => r.status === 'Completed').length / serviceRequests.length) * 100) : 0}%
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full transition-all duration-500" 
+                  style={{width: `${serviceRequests.length > 0 ? Math.round((serviceRequests.filter(r => r.status === 'Completed').length / serviceRequests.length) * 100) : 0}%`}}
+                ></div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Main Content */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
         >
           {loading ? (
             <div className="py-16 text-center">
@@ -453,47 +511,62 @@ const ServiceRequestManager = () => {
             </div>
           ) : (
             <div className="px-8 pt-6 pb-8">
-              {/* Enhanced Filter Controls */}
-              <div className="flex flex-col sm:flex-row justify-start gap-3 mb-6">
-                <select 
-                  value={statusFilter} 
-                  onChange={e => setStatusFilter(e.target.value)} 
-                  className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors shadow-sm min-w-[160px]"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="in progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-                <Button variant="outline" icon={<FilterIcon size={18} />} className="px-6 py-3 shadow-sm">
-                  More Filters
-                </Button>
+              {/* Enhanced Search and Filter Section */}
+              <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white rounded-xl mb-6">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+                  <div className="flex-1 max-w-md">
+                    <div className="relative">
+                      <SearchIcon size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Search service requests by customer name..." 
+                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200" 
+                        value={searchTerm} 
+                        onChange={e => setSearchTerm(e.target.value)} 
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 font-medium">Filter by Status:</span>
+                      <select 
+                        value={statusFilter} 
+                        onChange={e => setStatusFilter(e.target.value)} 
+                        className="admin-dropdown admin-dropdown-success"
+                      >
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="in progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Enhanced Table */}
-              <div className="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
-                <Table columns={columns} data={filteredRequests} onRowClick={row => {
-                  setSelectedRequest(row);
-                  setIsViewModalOpen(true);
-                }} />
+              {/* Table */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  <h4 className="text-lg font-semibold text-gray-800">Service Requests</h4>
+                </div>
+                <div className="overflow-x-auto">
+                  <Table columns={columns} data={filteredRequests} onRowClick={row => {
+                    setSelectedRequest(row);
+                    setIsViewModalOpen(true);
+                  }} />
+                </div>
               </div>
 
-              {/* Enhanced Pagination */}
-              <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <p className="text-sm text-gray-500 font-medium">
-                  Showing {filteredRequests.length} of {serviceRequests.length} service books
+              {/* Simple Pagination */}
+              <div className="flex justify-between items-center mt-6 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  Showing {filteredRequests.length} of {serviceRequests.length} service requests
                 </p>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" className="px-4 py-2">
-                    Previous
-                  </Button>
-                  <Button variant="outline" size="sm" className="bg-green-50 border-green-500 text-green-600 px-4 py-2">
-                    1
-                  </Button>
-                  <Button variant="outline" size="sm" className="px-4 py-2">
-                    Next
-                  </Button>
+                <div className="flex items-center space-x-2">
+                  <Button variant="outline" size="sm">Previous</Button>
+                  <Button variant="outline" size="sm" className="bg-green-50 border-green-400 text-green-700">1</Button>
+                  <Button variant="outline" size="sm">Next</Button>
                 </div>
               </div>
             </div>

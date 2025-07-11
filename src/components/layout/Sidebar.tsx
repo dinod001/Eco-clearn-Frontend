@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboardIcon, TruckIcon, ClipboardCheckIcon, PackageIcon, UsersIcon, UserIcon, MessageSquareIcon, BellIcon, XIcon, UserCogIcon, LogOutIcon, SettingsIcon } from 'lucide-react';
+import { LayoutDashboardIcon, TruckIcon, ClipboardCheckIcon, PackageIcon, UsersIcon, UserIcon, MessageSquareIcon, BellIcon, XIcon, UserCogIcon, LogOutIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useState } from 'react';
 interface SidebarProps {
@@ -241,9 +241,6 @@ const Sidebar = ({
               </div>
               
               <div className="flex items-center space-x-1">
-                <button className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-all duration-200">
-                  <SettingsIcon size={16} />
-                </button>
                 <button className="p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all duration-200">
                   <LogOutIcon size={16} />
                 </button>

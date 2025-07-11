@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
+import { pageAnimations } from '../../utils/animations';
 
 // Toast Notification Types
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -207,30 +208,23 @@ const StaffManager = () => {
       
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <motion.div 
+          {...pageAnimations.header}
+          className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
+        >
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
             <div className="flex items-center space-x-4">
               <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 rounded-xl">
                 <UsersIcon size={28} className="text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
                   Personnel Management
                 </h1>
                 <p className="text-gray-500 mt-1">Manage your team members and their access</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <div className="relative">
-                <SearchIcon size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search personnel..."
-                  className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200 w-full sm:w-64"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                />
-              </div>
               <Button 
                 variant="primary" 
                 icon={<UserPlusIcon size={18} />} 
@@ -241,65 +235,128 @@ const StaffManager = () => {
               </Button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(0)}
+            className="relative bg-gradient-to-br from-indigo-50 via-white to-indigo-100 rounded-2xl shadow-lg border border-indigo-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Personnel</p>
-                <p className="text-2xl font-bold text-gray-900">{staffMembers.length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl shadow-lg">
+                  <UsersIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">
+                    Personnel
+                  </div>
+                </div>
               </div>
-              <div className="bg-indigo-100 p-3 rounded-full">
-                <UsersIcon size={24} className="text-indigo-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Personnel</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  {staffMembers.length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((staffMembers.length / Math.max(staffMembers.length, 10)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
+          
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(1)}
+            className="relative bg-gradient-to-br from-purple-50 via-white to-purple-100 rounded-2xl shadow-lg border border-purple-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Administrators</p>
-                <p className="text-2xl font-bold text-purple-600">{staffMembers.filter(s => s.role === 'Admin').length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-3 rounded-xl shadow-lg">
+                  <ShieldIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+                    Admin
+                  </div>
+                </div>
               </div>
-              <div className="bg-purple-100 p-3 rounded-full">
-                <ShieldIcon size={24} className="text-purple-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Administrators</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  {staffMembers.filter(s => s.role === 'Admin').length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((staffMembers.filter(s => s.role === 'Admin').length / Math.max(staffMembers.length, 1)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
+
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(2)}
+            className="relative bg-gradient-to-br from-blue-50 via-white to-blue-100 rounded-2xl shadow-lg border border-blue-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Staff Members</p>
-                <p className="text-2xl font-bold text-blue-600">{staffMembers.filter(s => s.role === 'Staff').length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-blue-500 to-cyan-600 p-3 rounded-xl shadow-lg">
+                  <UserIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                    Staff
+                  </div>
+                </div>
               </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <UserIcon size={24} className="text-blue-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Staff Members</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                  {staffMembers.filter(s => s.role === 'Staff').length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-cyan-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((staffMembers.filter(s => s.role === 'Staff').length / Math.max(staffMembers.length, 1)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
         </div>
 
         {/* Personnel Table */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <motion.div 
+          {...pageAnimations.mainContent}
+          className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+        >
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800">Personnel Directory</h2>
             <p className="text-gray-500 mt-1">View and manage all personnel information</p>
+          </div>
+          
+          {/* Enhanced Search Section */}
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <div className="relative max-w-md">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <SearchIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search personnel by name, email, or role..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 shadow-sm hover:border-gray-400"
+              />
+            </div>
           </div>
           
           <div className="overflow-x-auto">
@@ -415,7 +472,7 @@ const StaffManager = () => {
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
       </div>
       {/* View Staff Modal */}
       <Modal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} title="Personnel Details" size="lg">
@@ -600,7 +657,7 @@ const StaffManager = () => {
               <select 
                 id="gender" 
                 name="gender" 
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+                className="admin-dropdown w-full"
                 required
               >
                 <option value="">Select gender</option>
@@ -660,7 +717,7 @@ const StaffManager = () => {
               <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
                 Role
               </label>
-              <select id="role" name="role" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+              <select id="role" name="role" className="admin-dropdown admin-dropdown-success w-full">
                 <option value="Admin">Admin</option>
                 <option value="Staff">Staff</option>
               </select>
@@ -756,7 +813,7 @@ const StaffManager = () => {
               <label htmlFor="edit-gender" className="block text-sm font-medium text-gray-700 mb-1">
                 Gender
               </label>
-              <select id="edit-gender" name="edit-gender" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" defaultValue={selectedStaff.gender}>
+              <select id="edit-gender" name="edit-gender" className="admin-dropdown admin-dropdown-success w-full" defaultValue={selectedStaff.gender}>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
@@ -802,7 +859,7 @@ const StaffManager = () => {
               <label htmlFor="edit-role" className="block text-sm font-medium text-gray-700 mb-1">
                 Role
               </label>
-              <select id="edit-role" name="edit-role" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" defaultValue={selectedStaff.role}>
+              <select id="edit-role" name="edit-role" className="admin-dropdown admin-dropdown-success w-full" defaultValue={selectedStaff.role}>
                 <option value="Admin">Admin</option>
                 <option value="Staff">Staff</option>
               </select>

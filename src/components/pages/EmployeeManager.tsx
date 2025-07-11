@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { SearchIcon, FilterIcon, EditIcon, TrashIcon, UserIcon, PhoneIcon, MailIcon, UserPlusIcon, ShieldIcon, EyeIcon, XIcon, AlertCircleIcon, CheckCircleIcon, XCircleIcon, UsersIcon, UserCheckIcon, UserXIcon, ClockIcon } from 'lucide-react';
+import { SearchIcon, EditIcon, TrashIcon, UserIcon, PhoneIcon, MailIcon, UserPlusIcon, ShieldIcon, EyeIcon, XIcon, AlertCircleIcon, CheckCircleIcon, XCircleIcon, UsersIcon, UserCheckIcon, UserXIcon, ClockIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
 import axios from 'axios';
+import { pageAnimations } from '../../utils/animations';
 
 // Toast Notification Types
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -428,30 +429,23 @@ const EmployeeManager = () => {
       
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <motion.div 
+          {...pageAnimations.header}
+          className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
+        >
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
             <div className="flex items-center space-x-4">
               <div className="bg-gradient-to-r from-orange-500 to-amber-600 p-3 rounded-xl">
                 <UsersIcon size={28} className="text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-orange-900 to-amber-900 bg-clip-text text-transparent">
                   Employee Management
                 </h1>
                 <p className="text-gray-500 mt-1">Manage your team members and their information</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <div className="relative">
-                <SearchIcon size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search employees..."
-                  className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200 w-full sm:w-64"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                />
-              </div>
               <Button 
                 variant="primary" 
                 icon={<UserPlusIcon size={18} />} 
@@ -462,209 +456,275 @@ const EmployeeManager = () => {
               </Button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(0)}
+            className="relative bg-gradient-to-br from-blue-50 via-white to-blue-100 rounded-2xl shadow-lg border border-blue-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Employees</p>
-                <p className="text-2xl font-bold text-gray-900">{employees.length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg">
+                  <UsersIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                    Total
+                  </div>
+                </div>
               </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <UsersIcon size={24} className="text-blue-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Employees</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  {employees.length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((employees.length / Math.max(employees.length, 10)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(1)}
+            className="relative bg-gradient-to-br from-green-50 via-white to-green-100 rounded-2xl shadow-lg border border-green-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Active</p>
-                <p className="text-2xl font-bold text-green-600">{employees.filter(emp => emp.status === 'Active').length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-xl shadow-lg">
+                  <UserCheckIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                    Active
+                  </div>
+                </div>
               </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <UserCheckIcon size={24} className="text-green-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Active</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  {employees.filter(emp => emp.status === 'Active').length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((employees.filter(emp => emp.status === 'Active').length / Math.max(employees.length, 1)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(2)}
+            className="relative bg-gradient-to-br from-yellow-50 via-white to-yellow-100 rounded-2xl shadow-lg border border-yellow-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">On Leave</p>
-                <p className="text-2xl font-bold text-yellow-600">{employees.filter(emp => emp.status === 'On Leave').length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-yellow-500 to-orange-600 p-3 rounded-xl shadow-lg">
+                  <ClockIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
+                    On Leave
+                  </div>
+                </div>
               </div>
-              <div className="bg-yellow-100 p-3 rounded-full">
-                <ClockIcon size={24} className="text-yellow-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">On Leave</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+                  {employees.filter(emp => emp.status === 'On Leave').length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-yellow-500 to-orange-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((employees.filter(emp => emp.status === 'On Leave').length / Math.max(employees.length, 1)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(3)}
+            className="relative bg-gradient-to-br from-red-50 via-white to-red-100 rounded-2xl shadow-lg border border-red-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Inactive</p>
-                <p className="text-2xl font-bold text-red-600">{employees.filter(emp => emp.status === 'Inactive').length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-red-500 to-pink-600 p-3 rounded-xl shadow-lg">
+                  <UserXIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                    Inactive
+                  </div>
+                </div>
               </div>
-              <div className="bg-red-100 p-3 rounded-full">
-                <UserXIcon size={24} className="text-red-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Inactive</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
+                  {employees.filter(emp => emp.status === 'Inactive').length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-red-500 to-pink-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((employees.filter(emp => emp.status === 'Inactive').length / Math.max(employees.length, 1)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
         </div>
 
-        {/* Filter Section */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-1">Filter Employees</h3>
-              <p className="text-sm text-gray-500">Filter by status to find specific employees</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <select 
-                value={statusFilter} 
-                onChange={e => setStatusFilter(e.target.value)} 
-                className="px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200"
-              >
-                <option value="all">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="On Leave">On Leave</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-              <Button variant="outline" icon={<FilterIcon size={18} />} className="hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700">
-                More Filters
-              </Button>
+        {/* Main Content Card */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          {/* Enhanced Search and Filter Section */}
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <SearchIcon size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search employees by name, role, or email..." 
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200" 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)} 
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <select 
+                  value={statusFilter} 
+                  onChange={e => setStatusFilter(e.target.value)} 
+                  className="admin-dropdown admin-dropdown-warning"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="On Leave">On Leave</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Employees Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-            // Loading skeleton
-            Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-pulse">
-                <div className="p-6">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="h-14 w-14 bg-gray-200 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+          {/* Employee Content */}
+          <div className="p-6">
+            {/* Employees Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loading ? (
+                // Loading skeleton
+                Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-pulse">
+                    <div className="p-6">
+                      <div className="flex items-center space-x-4 mb-4">
+                        <div className="h-14 w-14 bg-gray-200 rounded-full"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-gray-200 rounded"></div>
+                        <div className="h-8 bg-gray-200 rounded"></div>
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-gray-200 rounded"></div>
-                    <div className="h-8 bg-gray-200 rounded"></div>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <>
-              {filteredEmployees.slice(indexOfFirstEmployee, indexOfLastEmployee).map((employee, index) => (
-                <EmployeeCard 
-                  key={employee.id} 
-                  employee={employee} 
-                  index={index}
-                  onView={() => {
-                    setSelectedEmployee(employee);
-                    setIsViewModalOpen(true);
-                  }}
-                  onEdit={() => {
-                    setSelectedEmployee(employee);
-                    setIsEditModalOpen(true);
-                  }}
-                  onDelete={() => {
-                    setSelectedEmployee(employee);
-                    setIsDeleteModalOpen(true);
-                  }}
-                />
-              ))}
-              {filteredEmployees.length === 0 && (
-                <div className="col-span-3 py-16 text-center">
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12">
-                    <UsersIcon size={64} className="mx-auto mb-6 text-gray-300" />
-                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                      No employees found
-                    </h3>
-                    <p className="text-gray-500">
-                      No employees match your current filter criteria. Try adjusting your filters or add a new employee.
-                    </p>
-                  </div>
-                </div>
+                ))
+              ) : (
+                <>
+                  {filteredEmployees.slice(indexOfFirstEmployee, indexOfLastEmployee).map((employee, index) => (
+                    <EmployeeCard 
+                      key={employee.id} 
+                      employee={employee} 
+                      index={index}
+                      onView={() => {
+                        setSelectedEmployee(employee);
+                        setIsViewModalOpen(true);
+                      }}
+                      onEdit={() => {
+                        setSelectedEmployee(employee);
+                        setIsEditModalOpen(true);
+                      }}
+                      onDelete={() => {
+                        setSelectedEmployee(employee);
+                        setIsDeleteModalOpen(true);
+                      }}
+                    />
+                  ))}
+                  {filteredEmployees.length === 0 && (
+                    <div className="col-span-3 py-16 text-center">
+                      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12">
+                        <UsersIcon size={64} className="mx-auto mb-6 text-gray-300" />
+                        <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                          No employees found
+                        </h3>
+                        <p className="text-gray-500">
+                          No employees match your current filter criteria. Try adjusting your filters or add a new employee.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </div>
-
-        {/* Pagination */}
-        {!loading && filteredEmployees.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-gray-500">
-                Showing {indexOfFirstEmployee + 1}-
-                {Math.min(indexOfLastEmployee, filteredEmployees.length)} of{' '}
-                {filteredEmployees.length} employees
-              </p>
-              <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={currentPage === 1} 
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  className="hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700"
-                >
-                  Previous
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <Button
-                    key={page}
-                    variant={page === currentPage ? "primary" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(page)}
-                    className={page === currentPage 
-                      ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white" 
-                      : "hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700"
-                    }
-                  >
-                    {page}
-                  </Button>
-                ))}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={currentPage === totalPages} 
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  className="hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700"
-                >
-                  Next
-                </Button>
-              </div>
             </div>
+
+            {/* Pagination */}
+            {!loading && filteredEmployees.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <p className="text-sm text-gray-500">
+                    Showing {indexOfFirstEmployee + 1}-
+                    {Math.min(indexOfLastEmployee, filteredEmployees.length)} of{' '}
+                    {filteredEmployees.length} employees
+                  </p>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={currentPage === 1} 
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      className="hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700"
+                    >
+                      Previous
+                    </Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className={page === currentPage 
+                          ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white" 
+                          : "hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700"
+                        }
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={currentPage === totalPages} 
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      className="hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Add Employee Modal */}
         <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Employee">
@@ -686,7 +746,7 @@ const EmployeeManager = () => {
                 <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
                   Gender *
                 </label>
-                <select name="gender" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                <select name="gender" className="admin-dropdown admin-dropdown-warning w-full" required>
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -848,7 +908,7 @@ const EmployeeManager = () => {
                   <label htmlFor="edit-gender" className="block text-sm font-medium text-gray-700 mb-1">
                     Gender *
                   </label>
-                  <select name="gender" id="edit-gender" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" defaultValue={selectedEmployee.gender} required>
+                  <select name="gender" id="edit-gender" className="admin-dropdown admin-dropdown-success w-full" defaultValue={selectedEmployee.gender} required>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
@@ -894,7 +954,7 @@ const EmployeeManager = () => {
                   <label htmlFor="edit-role" className="block text-sm font-medium text-gray-700 mb-1">
                     Role *
                   </label>
-                  <select name="role" id="edit-role" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" defaultValue="Employee" required>
+                  <select name="role" id="edit-role" className="admin-dropdown admin-dropdown-success w-full" defaultValue="Employee" required>
                     <option value="Employee">Employee</option>
                   </select>
                 </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { PlusIcon, EditIcon, TrashIcon, PackageIcon, DollarSignIcon, PercentIcon, ImageIcon, ToggleLeftIcon, ToggleRightIcon, CheckCircleIcon, XCircleIcon, AlertCircleIcon, XIcon } from 'lucide-react';
+import { PlusIcon, EditIcon, TrashIcon, PackageIcon, DollarSignIcon, PercentIcon, ImageIcon, ToggleLeftIcon, ToggleRightIcon, CheckCircleIcon, XCircleIcon, AlertCircleIcon, XIcon, SearchIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
+import { pageAnimations } from '../../utils/animations';
 
 // Toast Notification Types
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -122,6 +123,7 @@ const ServicesManager = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [addImageFile, setAddImageFile] = useState<File | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -159,15 +161,19 @@ const ServicesManager = () => {
       if (!res.ok) throw new Error('Failed to fetch services');
       const data = await res.json();
       console.log('Fetched services data:', data); // Debug log
-      const mapped = (data.data || []).map((svc: any) => ({
-        id: svc._id,
-        name: svc.serviceName,
-        description: svc.description,
-        price: svc.price,
-        discount: svc.discount,
-        imageURL: svc.imageUrl,
-        availability: svc.Availability === true,
-      }));
+      const mapped = (data.data || []).map((svc: any) => {
+        console.log('Service object:', svc); // Debug individual service
+        console.log('Image fields - imageUrl:', svc.imageUrl, 'image:', svc.image); // Debug image fields
+        return {
+          id: svc._id,
+          name: svc.serviceName,
+          description: svc.description,
+          price: svc.price,
+          discount: svc.discount,
+          imageURL: svc.imageUrl || svc.image || '', // Use imageUrl since that's what's returned
+          availability: svc.Availability === true,
+        };
+      });
       setServices(mapped);
     } catch (err) {
       setServices([]);
@@ -180,13 +186,22 @@ const ServicesManager = () => {
   useEffect(() => {
     fetchServices();
   }, []);
-  const filteredServices = services.filter(service =>
-    availabilityFilter === 'all' ||
-    (availabilityFilter === 'available' && service.availability) ||
-    (availabilityFilter === 'unavailable' && !service.availability)
-  );
+  const filteredServices = services.filter(service => {
+    const matchesAvailability = availabilityFilter === 'all' ||
+      (availabilityFilter === 'available' && service.availability) ||
+      (availabilityFilter === 'unavailable' && !service.availability);
+    
+    const matchesSearch = searchTerm === '' ||
+      service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesAvailability && matchesSearch;
+  });
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+    <>
+      {/* Global dropdown styles are imported from global-dropdown.css */}
+      
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       
@@ -198,117 +213,201 @@ const ServicesManager = () => {
       )}
       
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-xl">
-                <PackageIcon size={28} className="text-white" />
+        {/* Enhanced Header Section */}
+        <motion.div 
+          {...pageAnimations.header}
+          className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8"
+        >
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            {/* Title Section - Left Side */}
+            <div className="flex items-center">
+              <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg mr-4">
+                <PackageIcon size={32} className="text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
                   Services Management
                 </h1>
-                <p className="text-gray-500 mt-1">Manage your service offerings and pricing</p>
+                <p className="text-gray-600 mt-2 text-lg">
+                  Manage your service offerings and pricing with ease
+                </p>
               </div>
             </div>
-            <Button 
-              variant="primary" 
-              icon={<PlusIcon size={18} />} 
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              Add New Service
-            </Button>
+            
+            {/* Action Button - Right Side */}
+            <div className="flex flex-col sm:flex-row gap-4 flex-shrink-0">
+              <Button 
+                variant="primary" 
+                icon={<PlusIcon size={18} />} 
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                Add New Service
+              </Button>
+            </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Stats Cards */}
+        {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(0)}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Total Services</p>
-                <p className="text-2xl font-bold text-gray-900">{services.length}</p>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Services</p>
+                <p className="text-3xl font-bold text-gray-900 mb-2">{services.length}</p>
+                <div className="flex items-center text-xs text-gray-500">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+                  All service offerings
+                </div>
               </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <PackageIcon size={24} className="text-blue-600" />
+              <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                <PackageIcon size={28} className="text-white" />
+              </div>
+            </div>
+            {/* Progress indicator */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Service Portfolio</span>
+                <span className="text-blue-600 font-medium">Active</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-1.5 rounded-full transition-all duration-500" style={{width: '100%'}}></div>
               </div>
             </div>
           </motion.div>
+
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(1)}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Available</p>
-                <p className="text-2xl font-bold text-green-600">{services.filter(s => s.availability).length}</p>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Available</p>
+                <p className="text-3xl font-bold text-green-600 mb-2">{services.filter(s => s.availability).length}</p>
+                <div className="flex items-center text-xs text-gray-500">
+                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                  Ready for customers
+                </div>
               </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <ToggleRightIcon size={24} className="text-green-600" />
+              <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                <ToggleRightIcon size={28} className="text-white" />
+              </div>
+            </div>
+            {/* Progress indicator */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Availability Rate</span>
+                <span className="text-green-600 font-medium">
+                  {services.length > 0 ? Math.round((services.filter(s => s.availability).length / services.length) * 100) : 0}%
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full transition-all duration-500" 
+                  style={{width: `${services.length > 0 ? Math.round((services.filter(s => s.availability).length / services.length) * 100) : 0}%`}}
+                ></div>
               </div>
             </div>
           </motion.div>
+
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(2)}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Unavailable</p>
-                <p className="text-2xl font-bold text-red-600">{services.filter(s => !s.availability).length}</p>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Unavailable</p>
+                <p className="text-3xl font-bold text-red-600 mb-2">{services.filter(s => !s.availability).length}</p>
+                <div className="flex items-center text-xs text-gray-500">
+                  <div className="w-2 h-2 bg-red-400 rounded-full mr-2"></div>
+                  Currently inactive
+                </div>
               </div>
-              <div className="bg-red-100 p-3 rounded-full">
-                <ToggleLeftIcon size={24} className="text-red-600" />
+              <div className="p-4 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                <ToggleLeftIcon size={28} className="text-white" />
+              </div>
+            </div>
+            {/* Progress indicator */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Inactive Rate</span>
+                <span className="text-red-600 font-medium">
+                  {services.length > 0 ? Math.round((services.filter(s => !s.availability).length / services.length) * 100) : 0}%
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                <div 
+                  className="bg-gradient-to-r from-red-500 to-pink-600 h-1.5 rounded-full transition-all duration-500" 
+                  style={{width: `${services.length > 0 ? Math.round((services.filter(s => !s.availability).length / services.length) * 100) : 0}%`}}
+                ></div>
               </div>
             </div>
           </motion.div>
         </div>
 
-        {/* Filters Section */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-1">Filter Services</h3>
-              <p className="text-sm text-gray-500">Choose the availability status to filter services</p>
-            </div>
-            <div className="flex space-x-3">
-              <select 
-                value={availabilityFilter} 
-                onChange={e => setAvailabilityFilter(e.target.value)} 
-                className="px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200"
-              >
-                <option value="all">All Services</option>
-                <option value="available">Available Only</option>
-                <option value="unavailable">Unavailable Only</option>
-              </select>
+        {/* Services Grid */}
+        <motion.div 
+          {...pageAnimations.mainContent}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+        >
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h4 className="text-lg font-semibold text-gray-800">Services Catalog</h4>
+          </div>
+          
+          {/* Enhanced Search and Filter Section */}
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <SearchIcon size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search services by name or description..." 
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200" 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)} 
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600 font-medium">Filter by Availability:</span>
+                  <select 
+                    value={availabilityFilter} 
+                    onChange={e => setAvailabilityFilter(e.target.value)} 
+                    className="admin-dropdown admin-dropdown-primary"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="available">Available</option>
+                    <option value="unavailable">Unavailable</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          <div className="p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-10">
           {isLoading ? (
-            // Loading skeleton
+            // Loading skeleton with improved design
             Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-pulse">
-                <div className="h-48 bg-gray-200"></div>
-                <div className="p-6">
-                  <div className="h-6 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-6"></div>
-                  <div className="flex space-x-3">
-                    <div className="h-8 bg-gray-200 rounded flex-1"></div>
-                    <div className="h-8 bg-gray-200 rounded flex-1"></div>
+              <div key={index} className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden animate-pulse">
+                <div className="h-56 bg-gradient-to-br from-gray-100 to-gray-200"></div>
+                <div className="p-6 space-y-4">
+                  <div className="space-y-3">
+                    <div className="h-6 bg-gray-200 rounded-lg"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    </div>
+                  </div>
+                  <div className="h-16 bg-gray-100 rounded-2xl"></div>
+                  <div className="flex space-x-3 pt-2">
+                    <div className="h-10 bg-gray-200 rounded-xl flex-1"></div>
+                    <div className="h-10 bg-gray-200 rounded-xl flex-1"></div>
                   </div>
                 </div>
               </div>
@@ -330,21 +429,42 @@ const ServicesManager = () => {
                 />
               )}
               {filteredServices.length === 0 && (
-                <div className="col-span-3 py-16 text-center">
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12">
-                    <PackageIcon size={64} className="mx-auto mb-6 text-gray-300" />
-                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                      No services found
-                    </h3>
-                    <p className="text-gray-500">
-                      No services match your current filter criteria. Try adjusting your filters or add a new service.
-                    </p>
+                <div className="col-span-full py-20 text-center">
+                  <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-16 max-w-md mx-auto">
+                    <div className="mb-8">
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <PackageIcon size={40} className="text-blue-500" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-800 mb-3">
+                        {services.length === 0 ? 'No Services Available' : 'No Services Found'}
+                      </h3>
+                      <p className="text-gray-600 leading-relaxed">
+                        {services.length === 0 
+                          ? 'Start building your service catalog by adding your first service offering.'
+                          : searchTerm 
+                            ? 'Try adjusting your search terms or filters to find what you\'re looking for.'
+                            : 'No services match your current filter criteria. Try selecting different options.'
+                        }
+                      </p>
+                    </div>
+                    {services.length === 0 && (
+                      <Button 
+                        variant="primary" 
+                        icon={<PlusIcon size={18} />} 
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl font-medium"
+                      >
+                        Add Your First Service
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
             </>
           )}
-        </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Add New Service Modal */}
@@ -357,39 +477,60 @@ const ServicesManager = () => {
         </div>
         <form className="space-y-6" onSubmit={async (e) => {
           e.preventDefault();
+          
           const form = e.target as HTMLFormElement;
           const formData = new FormData(form);
-          const serviceData = {
-            serviceName: formData.get('name'),
-            description: formData.get('description'),
-            price: Number(formData.get('price')),
-            discount: Number(formData.get('discount')),
-            Availability: formData.get('availability') === 'on',
-          };
+          
           const imageFile = addImageFile;
           if (!imageFile) {
             addToast('warning', 'Image Required', 'Please select an image for the service.');
             return;
           }
+
+          // Create FormData for multipart/form-data request
           const payload = new FormData();
-          payload.append('serviceData', JSON.stringify(serviceData));
+          
+          // Append individual fields for better compatibility
+          payload.append('serviceName', formData.get('name') as string);
+          payload.append('description', formData.get('description') as string);
+          payload.append('price', formData.get('price') as string);
+          payload.append('discount', formData.get('discount') as string);
+          payload.append('Availability', formData.get('availability') === 'on' ? 'true' : 'false');
           payload.append('image', imageFile);
+
+          // Debug: Log all FormData entries
+          console.log('Add Service FormData entries:');
+          for (const [key, value] of payload.entries()) {
+            console.log(key, value);
+          }
+
           try {
             const token = localStorage.getItem('authToken');
             const res = await fetch('http://localhost:5000/api/personnel/add-new-service', {
               method: 'POST',
               headers: {
                 Authorization: token ? `Bearer ${token}` : '',
+                // Remove Content-Type header to let the browser set it automatically for FormData
               },
               body: payload,
             });
-            if (!res.ok) throw new Error('Failed to add service');
-            addToast('success', 'Service Created!', `"${serviceData.serviceName}" has been successfully added to your services.`);
+            
+            if (!res.ok) {
+              const errorData = await res.text();
+              console.error('Add service failed:', res.status, errorData);
+              throw new Error(`Failed to add service: ${res.status} ${res.statusText}`);
+            }
+
+            const responseData = await res.json();
+            console.log('Add service response:', responseData);
+
+            addToast('success', 'Service Created!', `"${formData.get('name')}" has been successfully added to your services.`);
             setIsAddModalOpen(false);
             setAddImageFile(null);
             fetchServices(); // Refresh the services list
-          } catch (err) {
-            addToast('error', 'Failed to Create Service', 'There was an error creating the service. Please try again.');
+          } catch (err: any) {
+            console.error('Add service error:', err);
+            addToast('error', 'Failed to Create Service', err.message || 'There was an error creating the service. Please try again.');
           }
         }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -571,7 +712,8 @@ const ServicesManager = () => {
           </div>
         )}
       </Modal>
-    </div>
+      </div>
+    </>
   );
 };
 interface ServiceCardProps {
@@ -586,86 +728,119 @@ const ServiceCard = ({
 }: ServiceCardProps) => {
   return (
     <motion.div 
-      whileHover={{ y: -8, scale: 1.02 }} 
-      className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 group"
+      whileHover={{ y: -5, scale: 1.01 }} 
+      className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 group relative"
     >
       {/* Image Section */}
-      <div className="h-48 overflow-hidden relative">
+      <div className="h-56 overflow-hidden relative bg-gradient-to-br from-blue-50 to-indigo-50">
         {service.imageURL ? (
           <img 
             src={service.imageURL} 
             alt={service.name} 
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-            <ImageIcon size={64} className="text-gray-400" />
+          <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+            <div className="text-center">
+              <ImageIcon size={48} className="text-gray-300 mx-auto mb-2" />
+              <p className="text-xs text-gray-400 font-medium">No Image</p>
+            </div>
           </div>
         )}
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        
         {/* Availability Badge */}
         <div className="absolute top-4 right-4">
           {service.availability ? (
-            <span className="flex items-center px-3 py-1.5 text-xs font-semibold text-green-800 bg-green-100 backdrop-blur-sm rounded-full border border-green-200">
-              <ToggleRightIcon size={14} className="mr-1 text-green-600" />
+            <span className="flex items-center px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 backdrop-blur-md rounded-full border border-emerald-200 shadow-lg">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse" />
               Available
             </span>
           ) : (
-            <span className="flex items-center px-3 py-1.5 text-xs font-semibold text-red-800 bg-red-100 backdrop-blur-sm rounded-full border border-red-200">
-              <ToggleLeftIcon size={14} className="mr-1 text-red-600" />
+            <span className="flex items-center px-3 py-2 text-xs font-bold text-red-700 bg-red-50 backdrop-blur-md rounded-full border border-red-200 shadow-lg">
+              <div className="w-2 h-2 bg-red-500 rounded-full mr-2" />
               Unavailable
             </span>
           )}
         </div>
+
+        {/* Discount Badge */}
+        {service.discount > 0 && (
+          <div className="absolute top-4 left-4">
+            <span className="flex items-center px-3 py-2 text-xs font-bold text-white bg-gradient-to-r from-orange-500 to-red-500 rounded-full shadow-lg">
+              <PercentIcon size={12} className="mr-1" />
+              {service.discount}% OFF
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content Section */}
-      <div className="p-6">
-        <div className="mb-4">
-          <h3 className="font-bold text-xl text-gray-800 mb-2 group-hover:text-blue-600 transition-colors duration-200 truncate">
+      <div className="p-6 space-y-4">
+        {/* Title and Description */}
+        <div className="space-y-3">
+          <h3 className="font-bold text-xl text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
             {service.name}
           </h3>
-          <p className="text-sm text-gray-600 leading-relaxed" style={{
+          <p className="text-sm text-gray-600 leading-relaxed min-h-[2.5rem]" style={{
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden'
-          }}>{service.description}</p>
+          }}>
+            {service.description}
+          </p>
         </div>
 
         {/* Price Section */}
-        <div className="flex items-center justify-between mb-6 p-3 bg-gray-50 rounded-xl">
-          <div className="flex items-center text-gray-800">
-            <div className="bg-green-100 p-2 rounded-lg mr-3">
-              <DollarSignIcon size={16} className="text-green-600" />
+        <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-4 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 rounded-xl">
+                <DollarSignIcon size={18} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Price</p>
+                <div className="flex items-baseline space-x-2">
+                  {service.discount > 0 ? (
+                    <>
+                      <span className="text-lg font-bold text-gray-900">
+                        LKR {Math.round(service.price * (1 - service.discount / 100)).toLocaleString()}
+                      </span>
+                      <span className="text-sm text-gray-400 line-through">
+                        LKR {service.price.toLocaleString()}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-lg font-bold text-gray-900">
+                      LKR {service.price.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 font-medium">Price</p>
-              <span className="text-lg font-bold text-gray-900">
-                LKR {service.price.toLocaleString()}
-              </span>
-            </div>
+            
+            {service.discount > 0 && (
+              <div className="text-right">
+                <p className="text-xs text-green-600 font-medium">You Save</p>
+                <p className="text-sm font-bold text-green-600">
+                  LKR {Math.round((service.price * service.discount) / 100).toLocaleString()}
+                </p>
+              </div>
+            )}
           </div>
-          {service.discount > 0 && (
-            <div className="text-right">
-              <span className="px-3 py-1.5 text-xs font-bold rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white flex items-center shadow-md">
-                <PercentIcon size={12} className="mr-1" />
-                {service.discount}% OFF
-              </span>
-              <p className="text-xs text-gray-500 mt-1">
-                Save LKR {Math.round((service.price * service.discount) / 100).toLocaleString()}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Action Buttons */}
-        <div className="flex space-x-3">
+        <div className="flex space-x-3 pt-2">
           <Button 
             variant="outline" 
             size="sm" 
             icon={<EditIcon size={16} />} 
             onClick={onEdit}
-            className="flex-1 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200"
+            className="flex-1 py-3 border-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 font-medium transition-all duration-200 rounded-xl"
           >
             Edit
           </Button>
@@ -674,12 +849,15 @@ const ServiceCard = ({
             size="sm" 
             icon={<TrashIcon size={16} />} 
             onClick={onDelete}
-            className="flex-1 hover:bg-red-50 hover:border-red-300 transition-all duration-200"
+            className="flex-1 py-3 font-medium transition-all duration-200 rounded-xl shadow-md hover:shadow-lg"
           >
             Delete
           </Button>
         </div>
       </div>
+
+      {/* Subtle border highlight on hover */}
+      <div className="absolute inset-0 rounded-3xl border-2 border-transparent group-hover:border-blue-200 transition-colors duration-300 pointer-events-none" />
     </motion.div>
   );
 };
@@ -697,30 +875,73 @@ const EditServiceForm = ({ service, onClose, onUpdated, addToast }: { service: S
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const updateData = {
-      serviceName: name,
-      description,
-      price: Number(price),
-      discount: Number(discount),
-      Availability: availability,
-    };
-    const payload = new FormData();
-    payload.append('updateData', JSON.stringify(updateData));
-    if (imageFile) payload.append('image', imageFile);
+
     try {
       const token = localStorage.getItem('authToken');
+      
+      // Create updateData object exactly like Postman
+      const updateData = {
+        serviceName: name,
+        description: description,
+        price: Number(price),
+        discount: Number(discount),
+        Availability: availability,
+      };
+      
+      const formData = new FormData();
+      
+      // Add updateData as JSON string (exactly like Postman)
+      formData.append('updateData', JSON.stringify(updateData));
+      
+      if (imageFile) {
+        formData.append('image', imageFile); // Add image file
+        console.log('Image file attached:', imageFile.name, imageFile.type, imageFile.size);
+      }
+      
+      console.log('Sending update request...');
+      console.log('Update data JSON:', JSON.stringify(updateData));
+      console.log('Image included:', !!imageFile);
+      
+      // Debug FormData contents to match Postman format
+      console.log('FormData contents:');
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(key, '(File):', value.name, value.type, value.size);
+        } else {
+          console.log(key, ':', value);
+        }
+      }
+
       const res = await fetch(`http://localhost:5000/api/personnel/update-service/${service.id}`, {
         method: 'PATCH',
         headers: {
           Authorization: token ? `Bearer ${token}` : '',
+          // Let browser set Content-Type for FormData
         },
-        body: payload,
+        body: formData,
       });
-      if (!res.ok) throw new Error('Failed to update service');
+
+      if (!res.ok) {
+        const errorData = await res.text();
+        console.error('Update failed:', res.status, res.statusText, errorData);
+        throw new Error(`Failed to update service: ${res.status} ${res.statusText}`);
+      }
+
+      const responseData = await res.json();
+      console.log('Update successful:', responseData);
+      console.log('Updated service data:', responseData.data);
+      
+      // Check both image fields in response
+      if (responseData.data) {
+        console.log('Response image field:', responseData.data.image);
+        console.log('Response imageUrl field:', responseData.data.imageUrl);
+      }
+      
       onClose();
       onUpdated();
-    } catch (err) {
-      addToast('error', 'Failed to Update Service', 'There was an error updating the service. Please try again.');
+    } catch (err: any) {
+      console.error('Service update error:', err);
+      addToast('error', 'Failed to Update Service', err.message || 'There was an error updating the service. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MenuIcon, UserIcon, LogOutIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../auth/AuthContext';
@@ -10,6 +10,24 @@ const TopNavbar = ({
 }: TopNavbarProps) => {
   const { user, logout } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
 
   return (
     <header className="bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-100 z-10 sticky top-0">
@@ -33,7 +51,7 @@ const TopNavbar = ({
         {/* Right side - User menu */}
         <div className="flex items-center space-x-3">
           {/* User Menu */}
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} 
               className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 focus:outline-none transition-all duration-200"

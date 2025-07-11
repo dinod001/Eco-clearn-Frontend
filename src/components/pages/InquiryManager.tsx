@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SearchIcon, FilterIcon, TrashIcon, MessageCircleIcon, CheckCircleIcon, XCircleIcon, PhoneIcon, MailIcon, CalendarIcon, EyeIcon, MessageSquareIcon, AlertCircleIcon, TagIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import Table from '../common/Table';
 import Modal from '../common/Modal';
+import { pageAnimations } from '../../utils/animations';
 interface Inquiry {
   id: number;
   subject: string;
@@ -123,7 +125,7 @@ const InquiryManager = () => {
   }, {
     header: 'Actions',
     accessor: 'id',
-    cell: (value: number, row: Inquiry) => <div className="flex space-x-2">
+    cell: (_: number, row: Inquiry) => <div className="flex space-x-2">
           <Button variant="outline" size="sm" icon={<EyeIcon size={14} />} onClick={e => {
         e.stopPropagation();
         setSelectedInquiry(row);
@@ -149,50 +151,165 @@ const InquiryManager = () => {
         </div>
   }];
   const filteredInquiries = inquiries.filter(inquiry => (statusFilter === 'all' || inquiry.status === statusFilter) && (categoryFilter === 'all' || inquiry.category === categoryFilter) && (inquiry.subject.toLowerCase().includes(searchTerm.toLowerCase()) || inquiry.message.toLowerCase().includes(searchTerm.toLowerCase()) || inquiry.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || inquiry.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())));
-  return <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-800">
-          Customer Inquiry Management
-        </h1>
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full">
-            <span className="text-xs font-medium">
-              New: {inquiries.filter(i => i.status === 'New').length}
-            </span>
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-emerald-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Enhanced Header */}
+        <motion.div 
+          {...pageAnimations.header}
+          className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8"
+        >
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            {/* Title Section */}
+            <div className="flex items-center">
+              <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl mr-4">
+                <MessageCircleIcon size={28} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-green-900 to-emerald-900 bg-clip-text text-transparent">
+                  Customer Inquiry Management
+                </h1>
+                <p className="text-gray-600 mt-2 text-lg">
+                  Manage and respond to customer inquiries and feedback
+                </p>
+              </div>
+            </div>
+            
+            {/* Status Badges - Right Side */}
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-1 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl border border-blue-200">
+                <span className="text-sm font-medium">
+                  New: {inquiries.filter(i => i.status === 'New').length}
+                </span>
+              </div>
+              <div className="flex items-center space-x-1 px-4 py-2 bg-yellow-50 text-yellow-700 rounded-xl border border-yellow-200">
+                <span className="text-sm font-medium">
+                  In Progress: {inquiries.filter(i => i.status === 'In Progress').length}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center space-x-1 px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full">
-            <span className="text-xs font-medium">
-              In Progress:{' '}
-              {inquiries.filter(i => i.status === 'In Progress').length}
-            </span>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <motion.div 
+            {...pageAnimations.statsCard(0)}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Inquiries</p>
+                <p className="text-3xl font-bold text-gray-900">{inquiries.length}</p>
+              </div>
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
+                <MessageCircleIcon size={24} className="text-white" />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            {...pageAnimations.statsCard(1)}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">New</p>
+                <p className="text-3xl font-bold text-blue-600">{inquiries.filter(i => i.status === 'New').length}</p>
+              </div>
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                <AlertCircleIcon size={24} className="text-white" />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            {...pageAnimations.statsCard(2)}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">In Progress</p>
+                <p className="text-3xl font-bold text-yellow-600">{inquiries.filter(i => i.status === 'In Progress').length}</p>
+              </div>
+              <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl">
+                <MessageSquareIcon size={24} className="text-white" />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            {...pageAnimations.statsCard(3)}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Resolved</p>
+                <p className="text-3xl font-bold text-green-600">{inquiries.filter(i => i.status === 'Resolved').length}</p>
+              </div>
+              <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl">
+                <CheckCircleIcon size={24} className="text-white" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Search and Filters - Unified in a single row */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search Input */}
+            <div className="relative">
+              <input 
+                type="text" 
+                placeholder="Search inquiries..." 
+                className="pl-10 pr-4 py-3 border border-gray-200 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)} 
+              />
+              <SearchIcon size={18} className="absolute left-3 top-3.5 text-gray-400" />
+            </div>
+            
+            {/* Category Filter */}
+            <div className="relative">
+              <select 
+                value={categoryFilter} 
+                onChange={e => setCategoryFilter(e.target.value)} 
+                className="w-full py-3 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
+              >
+                <option value="all">All Categories</option>
+                {categories.map(category => 
+                  <option key={category} value={category}>{category}</option>
+                )}
+              </select>
+            </div>
+            
+            {/* Status Filter */}
+            <div className="relative">
+              <select 
+                value={statusFilter} 
+                onChange={e => setStatusFilter(e.target.value)} 
+                className="w-full py-3 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
+              >
+                <option value="all">All Statuses</option>
+                <option value="New">New</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </div>
+            
+            {/* More Filters Button */}
+            <div className="flex justify-start">
+              <Button variant="outline" icon={<FilterIcon size={18} />} className="px-6 py-3">
+                More Filters
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+
+        <div className="space-y-6">
       <Card>
-        <div className="flex flex-col sm:flex-row justify-between mb-6 space-y-4 sm:space-y-0">
-          <div className="relative">
-            <input type="text" placeholder="Search inquiries..." className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full sm:w-80 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            <SearchIcon size={18} className="absolute left-3 top-2.5 text-gray-400" />
-          </div>
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
-              <option value="all">All Categories</option>
-              {categories.map(category => <option key={category} value={category}>
-                  {category}
-                </option>)}
-            </select>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
-              <option value="all">All Statuses</option>
-              <option value="New">New</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Resolved">Resolved</option>
-              <option value="Closed">Closed</option>
-            </select>
-            <Button variant="outline" icon={<FilterIcon size={18} />}>
-              More Filters
-            </Button>
-          </div>
-        </div>
         <Table columns={columns} data={filteredInquiries} onRowClick={row => {
         setSelectedInquiry(row);
         setIsViewModalOpen(true);
@@ -365,6 +482,10 @@ const InquiryManager = () => {
             </div>
           </div>}
       </Modal>
-    </div>;
+        </div>
+      </div>
+    </div>
+  );
 };
+
 export default InquiryManager;

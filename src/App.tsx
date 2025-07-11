@@ -18,7 +18,16 @@ import CustomerManager from './components/pages/CustomerManager';
 import InquiryManager from './components/pages/InquiryManager';
 import NotificationManager from './components/pages/NotificationManager';
 import EmployeeManager from './components/pages/EmployeeManager';
-// Protected route component
+// Login redirect component - redirects to dashboard if already authenticated
+const LoginRedirect = () => {
+  const { isAuthenticated } = useAuth();
+  
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <LoginPage />;
+};
 const ProtectedRoute = ({
   children
 }: {
@@ -77,7 +86,7 @@ export function App() {
   return <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<LoginRedirect />} />
           <Route path="/" element={<ProtectedRoute>
                 <Navigate to="/dashboard" replace />
               </ProtectedRoute>} />
@@ -127,11 +136,11 @@ export function App() {
                   <ServicesManager />
                 </AdminLayout>
               </RoleProtectedRoute>} />
-          <Route path="/staff" element={<ProtectedRoute>
+          <Route path="/staff" element={<RoleProtectedRoute requiredRole="staff">
                 <AdminLayout>
                   <StaffManager />
                 </AdminLayout>
-              </ProtectedRoute>} />
+              </RoleProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute>
                 <AdminLayout>
                   <CustomerManager />
@@ -147,11 +156,11 @@ export function App() {
                   <NotificationManager />
                 </AdminLayout>
               </ProtectedRoute>} />
-          <Route path="/employees" element={<RoleProtectedRoute requiredRole="employees">
+          <Route path="/employees" element={<ProtectedRoute>
                 <AdminLayout>
                   <EmployeeManager />
                 </AdminLayout>
-              </RoleProtectedRoute>} />
+              </ProtectedRoute>} />
         </Routes>
         <Toaster 
           position="top-right"

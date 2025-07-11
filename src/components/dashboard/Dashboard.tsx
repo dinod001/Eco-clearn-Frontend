@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TruckIcon, UsersIcon, ClipboardCheckIcon, PackageIcon, BellIcon, CalendarIcon, UserIcon, AlertCircleIcon } from 'lucide-react';
+import { TruckIcon, UsersIcon, ClipboardCheckIcon, PackageIcon, CalendarIcon, UserIcon, AlertCircleIcon, 
+         TrendingUpIcon, TrendingDownIcon, FilterIcon, ChevronRightIcon, 
+         MapPinIcon, PhoneIcon, CheckCircleIcon, ClockIcon, XCircleIcon } from 'lucide-react';
 import Table from '../common/Table';
 import axios from 'axios';
 
@@ -24,14 +26,6 @@ interface PickupRequest {
   service?: string;
 }
 
-interface RecentNotification {
-  id: string;
-  title: string;
-  message: string;
-  type: string;
-  createdAt: string;
-}
-
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalPickups: 0,
@@ -44,7 +38,6 @@ const Dashboard = () => {
   });
 
   const [recentPickups, setRecentPickups] = useState<PickupRequest[]>([]);
-  const [recentNotifications, setRecentNotifications] = useState<RecentNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Animation variants
@@ -114,11 +107,6 @@ const Dashboard = () => {
       console.log('Services data array:', allServices);
       console.log('Services count:', allServices.length);
 
-      // Fetch notifications
-      const notificationResponse = await axios.get('http://localhost:5000/api/personnel/getAll-notification', {
-        headers
-      });
-
       // Process pickup requests
       const allPickups = pickupData.success && Array.isArray(pickupData.allPickups) ? pickupData.allPickups : [];
       const pendingPickups = allPickups.filter((p: any) => p.status === 'Pending').length;
@@ -137,18 +125,6 @@ const Dashboard = () => {
           service: req.serviceType || 'General Waste'
         }));
 
-      // Process notifications
-      const allNotifications = notificationResponse.data?.notifications || [];
-      const recentNotificationData: RecentNotification[] = allNotifications
-        .slice(0, 4)
-        .map((notif: any) => ({
-          id: notif._id,
-          title: notif.title || 'Notification',
-          message: notif.message || '',
-          type: notif.type || 'info',
-          createdAt: notif.createdAt ? new Date(notif.createdAt).toLocaleDateString() : ''
-        }));
-
       // Update stats
       setStats({
         totalPickups: allPickups.length,
@@ -157,11 +133,10 @@ const Dashboard = () => {
         totalServices: Array.isArray(allServices) ? allServices.length : 0,
         pendingPickups,
         completedPickups,
-        totalNotifications: allNotifications.length
+        totalNotifications: 0
       });
 
       setRecentPickups(recentPickupData);
-      setRecentNotifications(recentNotificationData);
 
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err);
@@ -249,140 +224,273 @@ const Dashboard = () => {
     );
   }
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Enhanced Header */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Enhanced Hero Header with Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-100 p-6 lg:p-8"
+        >
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-green-600">System Online</span>
+              </div>
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
                 Dashboard Overview
               </h1>
-              <p className="text-gray-600 mt-2 text-lg">
-                Welcome back! Here's what's happening with your business today.
+              <p className="text-gray-600 mt-2 text-base lg:text-lg">
+                Welcome back! Here's your business insights at a glance.
               </p>
             </div>
-            <div className="flex items-center space-x-3 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 rounded-xl border border-blue-100">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <CalendarIcon size={20} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Today</p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {new Date().toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex items-center space-x-3 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 rounded-2xl border border-blue-100">
+                <div className="p-2 bg-blue-100 rounded-xl">
+                  <CalendarIcon size={18} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Today</p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {new Date().toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Enhanced Stats Cards */}
+        {/* Enhanced Stats Cards with better animations */}
         <motion.div 
           variants={containerVariants} 
           initial="hidden" 
           animate="visible" 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
         >
+          {/* Total Pickups Card */}
           <motion.div variants={itemVariants}>
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Total Pickups</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalPickups}</p>
-                  <div className="flex items-center mt-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    <p className="text-xs text-gray-500">
-                      {stats.completedPickups} completed
-                    </p>
+            <div className="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                    <TruckIcon size={24} className="text-green-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 text-green-600">
+                      <TrendingUpIcon size={14} />
+                      <span className="text-xs font-medium">+12%</span>
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <TruckIcon size={28} className="text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Total Pickups</p>
+                  <p className="text-3xl font-bold text-gray-900 mb-2">{stats.totalPickups}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs text-gray-500">{stats.completedPickups} completed</span>
+                    </div>
+                    <ChevronRightIcon size={16} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
+                  </div>
                 </div>
               </div>
             </div>
           </motion.div>
 
+          {/* Total Customers Card */}
           <motion.div variants={itemVariants}>
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Total Customers</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalCustomers}</p>
-                  <div className="flex items-center mt-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                    <p className="text-xs text-gray-500">Active users</p>
+            <div className="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-sky-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-100 to-sky-100 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                    <UsersIcon size={24} className="text-blue-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 text-blue-600">
+                      <TrendingUpIcon size={14} />
+                      <span className="text-xs font-medium">+8%</span>
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-blue-100 to-sky-100 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <UsersIcon size={28} className="text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Total Customers</p>
+                  <p className="text-3xl font-bold text-gray-900 mb-2">{stats.totalCustomers}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-xs text-gray-500">Active users</span>
+                    </div>
+                    <ChevronRightIcon size={16} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
+                  </div>
                 </div>
               </div>
             </div>
           </motion.div>
 
+          {/* Pending Requests Card */}
           <motion.div variants={itemVariants}>
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Pending Requests</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.pendingPickups}</p>
-                  <div className="flex items-center mt-2">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full mr-2"></div>
-                    <p className="text-xs text-gray-500">Awaiting action</p>
+            <div className="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-50 to-orange-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                    <ClockIcon size={24} className="text-amber-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 text-amber-600">
+                      <TrendingDownIcon size={14} />
+                      <span className="text-xs font-medium">-3%</span>
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-amber-100 to-yellow-100 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <ClipboardCheckIcon size={28} className="text-amber-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Pending Requests</p>
+                  <p className="text-3xl font-bold text-gray-900 mb-2">{stats.pendingPickups}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-gray-500">Needs attention</span>
+                    </div>
+                    <ChevronRightIcon size={16} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
+                  </div>
                 </div>
               </div>
             </div>
           </motion.div>
 
+          {/* Total Services Card */}
           <motion.div variants={itemVariants}>
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Total Services</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalServices}</p>
-                  <div className="flex items-center mt-2">
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
-                    <p className="text-xs text-gray-500">Available options</p>
+            <div className="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                    <PackageIcon size={24} className="text-indigo-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 text-indigo-600">
+                      <TrendingUpIcon size={14} />
+                      <span className="text-xs font-medium">+5%</span>
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <PackageIcon size={28} className="text-indigo-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Total Services</p>
+                  <p className="text-3xl font-bold text-gray-900 mb-2">{stats.totalServices}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                      <span className="text-xs text-gray-500">Available options</span>
+                    </div>
+                    <ChevronRightIcon size={16} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
+                  </div>
                 </div>
               </div>
             </div>
           </motion.div>
         </motion.div>
 
-        {/* Enhanced Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Recent Pickup Requests */}
-          <div className="xl:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-8 py-6 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">Recent Pickup Requests</h3>
-                    <p className="text-gray-600 text-sm mt-1">Latest customer pickup requests</p>
+        {/* Enhanced Main Content with better layout */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Recent Pickup Requests - Enhanced */}
+          <div className="xl:col-span-3">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-100 overflow-hidden"
+            >
+              <div className="bg-gradient-to-r from-gray-50 via-blue-50 to-indigo-50 px-6 lg:px-8 py-6 border-b border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-100 rounded-2xl">
+                      <TruckIcon size={24} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl lg:text-2xl font-bold text-gray-900">Recent Pickup Requests</h3>
+                      <p className="text-gray-600 text-sm">Latest customer requests and their status</p>
+                    </div>
                   </div>
-                  <div className="p-3 bg-blue-100 rounded-xl">
-                    <TruckIcon size={24} className="text-blue-600" />
+                  <div className="flex items-center gap-2">
+                    <button className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors text-sm">
+                      <FilterIcon size={16} className="text-gray-500" />
+                      Filter
+                    </button>
+                    <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-xl text-sm font-medium">
+                      {recentPickups.length} requests
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="p-8">
+              
+              <div className="p-6 lg:p-8">
                 {recentPickups.length > 0 ? (
-                  <div className="overflow-hidden">
-                    <Table columns={pickupColumns} data={recentPickups} />
+                  <div className="space-y-4">
+                    {recentPickups.map((pickup, index) => (
+                      <motion.div
+                        key={pickup.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="group bg-gradient-to-r from-white to-gray-50 border border-gray-100 rounded-2xl p-4 hover:shadow-lg hover:border-blue-200 transition-all duration-200"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                              <UserIcon size={18} className="text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{pickup.username}</p>
+                              <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                                <div className="flex items-center gap-1">
+                                  <MapPinIcon size={14} />
+                                  <span>{pickup.location}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <PhoneIcon size={14} />
+                                  <span>{pickup.contact}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-4">
+                            <div className="text-sm">
+                              <p className="text-gray-500 mb-1">Service</p>
+                              <p className="font-medium text-gray-900">{pickup.service}</p>
+                            </div>
+                            <div className="text-sm">
+                              <p className="text-gray-500 mb-1">Date</p>
+                              <p className="font-medium text-gray-900">{pickup.date}</p>
+                            </div>
+                            <div>
+                              <span className={`inline-flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-xl ${
+                                pickup.status === 'Completed' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : pickup.status === 'Pending' 
+                                  ? 'bg-amber-100 text-amber-800' 
+                                  : pickup.status === 'Accepted' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {pickup.status === 'Completed' && <CheckCircleIcon size={14} />}
+                                {pickup.status === 'Pending' && <ClockIcon size={14} />}
+                                {pickup.status === 'Cancelled' && <XCircleIcon size={14} />}
+                                {pickup.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
                 ) : (
                   <div className="text-center py-16">
@@ -394,61 +502,72 @@ const Dashboard = () => {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
 
-          {/* Recent Notifications & Quick Stats */}
-          <div className="space-y-8">
-            {/* Recent Notifications */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-5 border-b border-gray-100">
-                <div className="flex items-center justify-between">
+          {/* Quick Actions Sidebar */}
+          <div className="xl:col-span-1">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-100 p-6"
+            >
+              <h3 className="text-lg font-bold text-gray-900 mb-6">Quick Actions</h3>
+              <div className="space-y-3">
+                <button className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 text-left group">
+                  <div className="p-2 bg-blue-100 rounded-xl group-hover:scale-110 transition-transform">
+                    <TruckIcon size={18} className="text-blue-600" />
+                  </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">Recent Notifications</h3>
-                    <p className="text-gray-600 text-sm">Latest system updates</p>
+                    <p className="font-medium text-gray-900">View All Pickups</p>
+                    <p className="text-xs text-gray-500">Manage requests</p>
                   </div>
-                  <div className="p-2 bg-indigo-100 rounded-lg">
-                    <BellIcon size={20} className="text-indigo-600" />
+                  <ChevronRightIcon size={16} className="text-gray-400 ml-auto" />
+                </button>
+                
+                <button className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl hover:from-green-100 hover:to-emerald-100 transition-all duration-200 text-left group">
+                  <div className="p-2 bg-green-100 rounded-xl group-hover:scale-110 transition-transform">
+                    <UsersIcon size={18} className="text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">Manage Customers</p>
+                    <p className="text-xs text-gray-500">User accounts</p>
+                  </div>
+                  <ChevronRightIcon size={16} className="text-gray-400 ml-auto" />
+                </button>
+                
+                <button className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl hover:from-purple-100 hover:to-indigo-100 transition-all duration-200 text-left group">
+                  <div className="p-2 bg-purple-100 rounded-xl group-hover:scale-110 transition-transform">
+                    <PackageIcon size={18} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">Services</p>
+                    <p className="text-xs text-gray-500">Manage offerings</p>
+                  </div>
+                  <ChevronRightIcon size={16} className="text-gray-400 ml-auto" />
+                </button>
+              </div>
+              
+              {/* Quick Stats */}
+              <div className="mt-8 p-4 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl">
+                <h4 className="font-medium text-gray-900 mb-3">Today's Summary</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Completed</span>
+                    <span className="font-medium text-green-600">{stats.completedPickups}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Pending</span>
+                    <span className="font-medium text-amber-600">{stats.pendingPickups}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Total Customers</span>
+                    <span className="font-medium text-blue-600">{stats.totalCustomers}</span>
                   </div>
                 </div>
               </div>
-              <div className="p-6">
-                <div className="space-y-4 max-h-80 overflow-y-auto">
-                  {recentNotifications.length > 0 ? (
-                    recentNotifications.map((notification) => (
-                      <div 
-                        key={notification.id} 
-                        className="flex items-start space-x-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200"
-                      >
-                        <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex-shrink-0">
-                          <BellIcon size={16} className="text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">
-                            {notification.title}
-                          </p>
-                          <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center mt-2">
-                            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2"></div>
-                            <p className="text-xs text-gray-400">{notification.createdAt}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="p-3 bg-gray-100 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                        <BellIcon size={20} className="text-gray-400" />
-                      </div>
-                      <p className="text-gray-500 font-medium">No recent notifications</p>
-                      <p className="text-gray-400 text-sm mt-1">Notifications will appear here</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>

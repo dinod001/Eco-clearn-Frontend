@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { PlusIcon, SearchIcon, TrashIcon, BellIcon, SendIcon, UsersIcon, FilterIcon, EyeIcon, CalendarIcon, CheckCircleIcon, XCircleIcon, AlertCircleIcon, InfoIcon, XIcon, EditIcon } from 'lucide-react';
+import { PlusIcon, SearchIcon, TrashIcon, BellIcon, SendIcon, UsersIcon, EyeIcon, CalendarIcon, CheckCircleIcon, XCircleIcon, AlertCircleIcon, InfoIcon, XIcon, EditIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import Table from '../common/Table';
 import Modal from '../common/Modal';
 import axios from 'axios';
+import { pageAnimations } from '../../utils/animations';
 
 // Toast Notification Types
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -583,14 +584,17 @@ const NotificationManager = () => {
       
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <motion.div 
+          {...pageAnimations.header}
+          className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
+        >
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
             <div className="flex items-center space-x-4">
               <div className="bg-gradient-to-r from-purple-500 to-indigo-600 p-3 rounded-xl">
                 <BellIcon size={28} className="text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-purple-900 to-indigo-900 bg-clip-text text-transparent">
                   Notification Management
                 </h1>
                 <p className="text-gray-500 mt-1">Manage and send notifications to users across the platform</p>
@@ -605,74 +609,130 @@ const NotificationManager = () => {
               Create Notification
             </Button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(0)}
+            className="relative bg-gradient-to-br from-purple-50 via-white to-purple-100 rounded-2xl shadow-lg border border-purple-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Notifications</p>
-                <p className="text-2xl font-bold text-gray-900">{notifications.length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-3 rounded-xl shadow-lg">
+                  <BellIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+                    Total
+                  </div>
+                </div>
               </div>
-              <div className="bg-purple-100 p-3 rounded-full">
-                <BellIcon size={24} className="text-purple-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Notifications</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  {notifications.length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-purple-500 to-indigo-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((notifications.length / Math.max(notifications.length, 10)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(1)}
+            className="relative bg-gradient-to-br from-green-50 via-white to-green-100 rounded-2xl shadow-lg border border-green-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Read</p>
-                <p className="text-2xl font-bold text-green-600">{notifications.filter(n => n.status === 'Read').length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-xl shadow-lg">
+                  <CheckCircleIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                    Read
+                  </div>
+                </div>
               </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <CheckCircleIcon size={24} className="text-green-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Read</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  {notifications.filter(n => n.status === 'Read').length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((notifications.filter(n => n.status === 'Read').length / Math.max(notifications.length, 1)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(2)}
+            className="relative bg-gradient-to-br from-gray-50 via-white to-gray-100 rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Unread</p>
-                <p className="text-2xl font-bold text-gray-600">{notifications.filter(n => n.status === 'Unread').length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-500/5 via-transparent to-slate-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-gray-500 to-slate-600 p-3 rounded-xl shadow-lg">
+                  <XCircleIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                    Unread
+                  </div>
+                </div>
               </div>
-              <div className="bg-gray-100 p-3 rounded-full">
-                <XCircleIcon size={24} className="text-gray-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Unread</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-gray-600 to-slate-600 bg-clip-text text-transparent">
+                  {notifications.filter(n => n.status === 'Unread').length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-gray-500 to-slate-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((notifications.filter(n => n.status === 'Unread').length / Math.max(notifications.length, 1)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow duration-200"
+            {...pageAnimations.statsCard(3)}
+            className="relative bg-gradient-to-br from-red-50 via-white to-red-100 rounded-2xl shadow-lg border border-red-100 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Alerts</p>
-                <p className="text-2xl font-bold text-red-600">{notifications.filter(n => n.type === 'Alert').length}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-red-500 to-orange-600 p-3 rounded-xl shadow-lg">
+                  <AlertCircleIcon size={24} className="text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                    Alerts
+                  </div>
+                </div>
               </div>
-              <div className="bg-red-100 p-3 rounded-full">
-                <AlertCircleIcon size={24} className="text-red-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Alerts</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                  {notifications.filter(n => n.type === 'Alert').length}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-gradient-to-r from-red-500 to-orange-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((notifications.filter(n => n.type === 'Alert').length / Math.max(notifications.length, 1)) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
@@ -696,37 +756,27 @@ const NotificationManager = () => {
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
-                <div className="flex items-center space-x-2">
-                  <FilterIcon size={16} className="text-gray-500" />
-                  <select 
-                    value={typeFilter} 
-                    onChange={e => setTypeFilter(e.target.value)} 
-                    className="px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200 text-sm font-medium"
-                  >
-                    <option value="all">All Types</option>
-                    <option value="General">General</option>
-                    <option value="Alert">Alert</option>
-                    <option value="Reminder">Reminder</option>
-                    <option value="Reward">Reward</option>
-                    <option value="Discount">Discount</option>
-                  </select>
-                </div>
+                <select 
+                  value={typeFilter} 
+                  onChange={e => setTypeFilter(e.target.value)} 
+                  className="admin-dropdown admin-dropdown-primary"
+                >
+                  <option value="all">All Types</option>
+                  <option value="General">General</option>
+                  <option value="Alert">Alert</option>
+                  <option value="Reminder">Reminder</option>
+                  <option value="Reward">Reward</option>
+                  <option value="Discount">Discount</option>
+                </select>
                 <select 
                   value={statusFilter} 
                   onChange={e => setStatusFilter(e.target.value)} 
-                  className="px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200 text-sm font-medium"
+                  className="admin-dropdown admin-dropdown-primary"
                 >
                   <option value="all">All Statuses</option>
                   <option value="Read">Read</option>
                   <option value="Unread">Unread</option>
                 </select>
-                <Button 
-                  variant="outline" 
-                  icon={<FilterIcon size={16} />} 
-                  className="hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700 transition-all duration-200"
-                >
-                  More Filters
-                </Button>
               </div>
             </div>
           </div>
@@ -874,7 +924,7 @@ const NotificationManager = () => {
               <select 
                 id="type" 
                 name="type"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
+                className="admin-dropdown admin-dropdown-primary w-full"
                 defaultValue="General"
               >
                 <option value="General">General</option>
@@ -891,7 +941,7 @@ const NotificationManager = () => {
               <select 
                 id="status" 
                 name="status"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
+                className="admin-dropdown admin-dropdown-primary w-full"
                 defaultValue="Unread"
               >
                 <option value="Unread">Unread</option>
@@ -1206,7 +1256,7 @@ const NotificationManager = () => {
                 <select 
                   id="edit-type" 
                   name="type"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white" 
+                  className="admin-dropdown admin-dropdown-primary w-full" 
                   defaultValue={editNotification.type}
                 >
                   <option value="General">General</option>
@@ -1223,7 +1273,7 @@ const NotificationManager = () => {
                 <select 
                   id="edit-status" 
                   name="status"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white" 
+                  className="admin-dropdown admin-dropdown-primary w-full" 
                   defaultValue={editNotification.status}
                 >
                   <option value="Unread">Unread</option>
