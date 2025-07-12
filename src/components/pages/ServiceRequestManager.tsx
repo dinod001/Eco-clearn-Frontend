@@ -5,7 +5,6 @@ import Button from '../common/Button';
 import Table from '../common/Table';
 import Modal from '../common/Modal';
 import axios from 'axios';
-import { pageAnimations } from '../../utils/animations';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -121,7 +120,7 @@ interface ServiceRequest {
   advance: number;
   price: number;
   balance: number;
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
+  status: 'Pending' | 'Confirmed' | 'In Progress' | 'Completed' | 'Cancelled';
   staff: string[];
   userId: string;
 }
@@ -141,9 +140,19 @@ const ServiceRequestManager = () => {
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [advancePercent, setAdvancePercent] = useState<number>(0);
-  const [editStatus, setEditStatus] = useState<string>('Pending');
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [currentAdvance, setCurrentAdvance] = useState<number>(0);
+  const [currentBalance, setCurrentBalance] = useState<number>(0);
+  const [editFormData, setEditFormData] = useState({
+    serviceName: '',
+    userName: '',
+    contact: '',
+    location: '',
+    date: '',
+    price: 0,
+    advancePercentage: 0,
+    status: 'Pending'
+  });
 
   // Toast helper functions
   const addToast = (type: ToastType, title: string, message: string) => {
@@ -177,7 +186,7 @@ const ServiceRequestManager = () => {
           date: req.date || '',
           advance: req.advance || 0,
           price: req.price || 0,
-          balance: req.balance || 0,
+          balance: req.balance || (req.price && req.advance ? req.price - req.advance : 0), // Calculate balance if not provided
           status: req.status || 'Pending',
           staff: req.staff || [],
           userId: req.userId || '',
@@ -215,21 +224,62 @@ const ServiceRequestManager = () => {
     }
   }, [selectedRequest, isEditModalOpen]);
   useEffect(() => {
-    if (selectedRequest) {
-      setAdvancePercent(
-        selectedRequest.price > 0 && selectedRequest.advance > 0
-          ? Math.round((selectedRequest.advance / selectedRequest.price) * 100)
-          : 0
-      );
-    } else {
-      setAdvancePercent(0);
+    if (selectedRequest && isEditModalOpen) {
+      const currentAdvancePercent = selectedRequest.price > 0 && selectedRequest.advance > 0
+        ? Math.round((selectedRequest.advance / selectedRequest.price) * 100)
+        : 0;
+      
+      // Always show the actual database balance value
+      const databaseBalance = selectedRequest.balance;
+      
+      // Set the advance and balance from the selected request first
+      setCurrentAdvance(selectedRequest.advance || 0);
+      setCurrentBalance(databaseBalance);
+      
+      // Set form data
+      setEditFormData({
+        serviceName: selectedRequest.serviceName || '',
+        userName: selectedRequest.userName || '',
+        contact: selectedRequest.contact || '',
+        location: selectedRequest.location || '',
+        date: selectedRequest.date ? selectedRequest.date.slice(0, 10) : '',
+        price: selectedRequest.price || 0,
+        advancePercentage: currentAdvancePercent,
+        status: selectedRequest.status || 'Pending'
+      });
+    } else if (!isEditModalOpen) {
+      // Reset everything when modal is closed
+      setCurrentAdvance(0);
+      setCurrentBalance(0);
+      setEditFormData({
+        serviceName: '',
+        userName: '',
+        contact: '',
+        location: '',
+        date: '',
+        price: 0,
+        advancePercentage: 0,
+        status: 'Pending'
+      });
     }
-  }, [selectedRequest, isEditModalOpen]);
+  }, [selectedRequest?.id, isEditModalOpen]);
+  // Update balance when advance percentage or price changes
   useEffect(() => {
-    if (selectedRequest) {
-      setEditStatus(selectedRequest.status);
+    if (isEditModalOpen && selectedRequest) {
+      if (editFormData.advancePercentage > 0 && editFormData.price > 0) {
+        // If advance percentage is set, calculate automatically
+        const advance = Math.round((editFormData.advancePercentage / 100) * editFormData.price);
+        const balance = editFormData.price - advance;
+        
+        setCurrentAdvance(advance);
+        setCurrentBalance(balance);
+      } else {
+        // If advance percentage is empty/0, use database values
+        setCurrentAdvance(selectedRequest.advance || 0);
+        setCurrentBalance(selectedRequest.balance || 0);
+      }
     }
-  }, [selectedRequest, isEditModalOpen]);
+  }, [editFormData.advancePercentage, editFormData.price, isEditModalOpen, selectedRequest]);
   const columns = [{
     header: 'Service Name',
     accessor: 'serviceName'
@@ -281,7 +331,7 @@ const ServiceRequestManager = () => {
   }, {
     header: 'Status',
     accessor: 'status',
-    cell: (value: string) => <span className={`px-2 py-1 text-xs font-medium rounded-full ${value === 'Completed' ? 'bg-green-100 text-green-800' : value === 'Pending' ? 'bg-yellow-100 text-yellow-800' : value === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}`}>
+    cell: (value: string) => <span className={`px-2 py-1 text-xs font-medium rounded-full ${value === 'Completed' ? 'bg-green-100 text-green-800' : value === 'Pending' ? 'bg-yellow-100 text-yellow-800' : value === 'Confirmed' ? 'bg-blue-100 text-blue-800' : value === 'In Progress' ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'}`}>
           {value}
         </span>
   }, {
@@ -536,6 +586,7 @@ const ServiceRequestManager = () => {
                       >
                         <option value="all">All Statuses</option>
                         <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
                         <option value="in progress">In Progress</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
@@ -645,7 +696,8 @@ const ServiceRequestManager = () => {
                       <span className={`px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${
                         selectedRequest.status === 'Completed' ? 'bg-green-100 text-green-800' : 
                         selectedRequest.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 
-                        selectedRequest.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 
+                        selectedRequest.status === 'Confirmed' ? 'bg-blue-100 text-blue-800' : 
+                        selectedRequest.status === 'In Progress' ? 'bg-purple-100 text-purple-800' : 
                         'bg-red-100 text-red-800'
                       }`}>
                         {selectedRequest.status}
@@ -740,27 +792,22 @@ const ServiceRequestManager = () => {
               setLoading(true);
               setError(null);
               try {
-                const form = e.target as HTMLFormElement;
-                const getValue = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement)?.value || '';
                 const token = localStorage.getItem('authToken');
-                const price = Number(getValue('edit-price'));
-                const advance = Math.round((advancePercent / 100) * price);
-                const balance = price - advance;
                 
                 const payload = {
                   serviceBookData: {
                     _id: selectedRequest.id,
                     userId: selectedRequest.userId,
-                    userName: getValue('edit-userName'),
-                    serviceName: getValue('edit-serviceName'),
-                    contact: getValue('edit-contact'),
-                    location: getValue('edit-location'),
-                    date: getValue('edit-date'),
-                    advance,
-                    price,
-                    balance,
+                    userName: editFormData.userName,
+                    serviceName: editFormData.serviceName,
+                    contact: editFormData.contact,
+                    location: editFormData.location,
+                    date: editFormData.date,
+                    advance: currentAdvance,
+                    price: editFormData.price,
+                    balance: currentBalance,
                     staff: selectedStaff,
-                    status: editStatus,
+                    status: editFormData.status,
                   }
                 };
                 
@@ -782,7 +829,7 @@ const ServiceRequestManager = () => {
                   date: req.date || '',
                   advance: req.advance || 0,
                   price: req.price || 0,
-                  balance: req.balance || 0,
+                  balance: req.balance || (req.price && req.advance ? req.price - req.advance : 0), // Calculate balance if not provided
                   status: req.status || 'Pending',
                   staff: req.staff || [],
                   userId: req.userId || '',
@@ -803,7 +850,8 @@ const ServiceRequestManager = () => {
                     type="text" 
                     id="edit-serviceName" 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors" 
-                    defaultValue={selectedRequest.serviceName} 
+                    value={editFormData.serviceName}
+                    onChange={e => setEditFormData(prev => ({ ...prev, serviceName: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -814,7 +862,8 @@ const ServiceRequestManager = () => {
                     type="text" 
                     id="edit-userName" 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors" 
-                    defaultValue={selectedRequest.userName} 
+                    value={editFormData.userName}
+                    onChange={e => setEditFormData(prev => ({ ...prev, userName: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -825,7 +874,8 @@ const ServiceRequestManager = () => {
                     type="text" 
                     id="edit-contact" 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors" 
-                    defaultValue={selectedRequest.contact} 
+                    value={editFormData.contact}
+                    onChange={e => setEditFormData(prev => ({ ...prev, contact: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -836,7 +886,8 @@ const ServiceRequestManager = () => {
                     type="text" 
                     id="edit-location" 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors" 
-                    defaultValue={selectedRequest.location} 
+                    value={editFormData.location}
+                    onChange={e => setEditFormData(prev => ({ ...prev, location: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -847,7 +898,8 @@ const ServiceRequestManager = () => {
                     type="date" 
                     id="edit-date" 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors" 
-                    defaultValue={selectedRequest.date ? selectedRequest.date.slice(0, 10) : ''} 
+                    value={editFormData.date}
+                    onChange={e => setEditFormData(prev => ({ ...prev, date: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -857,10 +909,11 @@ const ServiceRequestManager = () => {
                   <select
                     id="edit-status"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-                    value={editStatus}
-                    onChange={e => setEditStatus(e.target.value)}
+                    value={editFormData.status}
+                    onChange={e => setEditFormData(prev => ({ ...prev, status: e.target.value }))}
                   >
                     <option value="Pending">Pending</option>
+                    <option value="Confirmed">Confirmed</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Completed">Completed</option>
                     <option value="Cancelled">Cancelled</option>
@@ -874,7 +927,8 @@ const ServiceRequestManager = () => {
                     type="number"
                     id="edit-price"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-                    defaultValue={selectedRequest.price}
+                    value={editFormData.price}
+                    onChange={e => setEditFormData(prev => ({ ...prev, price: Number(e.target.value) || 0 }))}
                   />
                 </div>
                 <div>
@@ -885,10 +939,10 @@ const ServiceRequestManager = () => {
                     type="number"
                     id="edit-advance-percent"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-                    value={advancePercent}
+                    value={editFormData.advancePercentage}
                     min={0}
                     max={100}
-                    onChange={e => setAdvancePercent(Number(e.target.value))}
+                    onChange={e => setEditFormData(prev => ({ ...prev, advancePercentage: Number(e.target.value) || 0 }))}
                   />
                 </div>
                 <div>
@@ -899,23 +953,30 @@ const ServiceRequestManager = () => {
                     type="number"
                     id="edit-advance"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600"
-                    value={Math.round((advancePercent / 100) * (selectedRequest.price || 0))}
+                    value={currentAdvance}
                     disabled
                     readOnly
                   />
                 </div>
                 <div>
                   <label htmlFor="edit-balance" className="block text-sm font-medium text-gray-700 mb-2">
-                    Balance (LKR)
+                    Balance (LKR) {editFormData.advancePercentage > 0 ? '- Auto Calculated' : ''}
                   </label>
                   <input
                     type="number"
                     id="edit-balance"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600"
-                    value={selectedRequest.price - Math.round((advancePercent / 100) * (selectedRequest.price || 0))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+                    value={currentBalance}
                     disabled
                     readOnly
+                    placeholder={editFormData.advancePercentage > 0 ? 'Auto-calculated' : `DB Value: ${selectedRequest?.balance || 0}`}
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {editFormData.advancePercentage > 0 
+                      ? `Auto-calculated from ${editFormData.advancePercentage}% advance` 
+                      : `View only - cannot be edited`
+                    }
+                  </p>
                 </div>
                 <div className="md:col-span-2">
                   <label htmlFor="edit-staff" className="block text-sm font-medium text-gray-700 mb-2">
@@ -942,8 +1003,31 @@ const ServiceRequestManager = () => {
               
               <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
                 <Button 
+                  type="button"
                   variant="outline" 
-                  onClick={() => setIsEditModalOpen(false)}
+                  onClick={() => {
+                    // Reset form data to original values when cancelling
+                    if (selectedRequest) {
+                      const currentAdvancePercent = selectedRequest.price > 0 && selectedRequest.advance > 0
+                        ? Math.round((selectedRequest.advance / selectedRequest.price) * 100)
+                        : 0;
+                      
+                      setEditFormData({
+                        serviceName: selectedRequest.serviceName || '',
+                        userName: selectedRequest.userName || '',
+                        contact: selectedRequest.contact || '',
+                        location: selectedRequest.location || '',
+                        date: selectedRequest.date ? selectedRequest.date.slice(0, 10) : '',
+                        price: selectedRequest.price || 0,
+                        advancePercentage: currentAdvancePercent,
+                        status: selectedRequest.status || 'Pending'
+                      });
+                      setCurrentAdvance(selectedRequest.advance || 0);
+                      setCurrentBalance(selectedRequest.balance || 0);
+                      setSelectedStaff(selectedRequest.staff || []);
+                    }
+                    setIsEditModalOpen(false);
+                  }}
                   className="px-6 py-2.5"
                 >
                   Cancel
@@ -1035,7 +1119,7 @@ const ServiceRequestManager = () => {
                         date: req.date || '',
                         advance: req.advance || 0,
                         price: req.price || 0,
-                        balance: req.balance || 0,
+                        balance: req.balance || (req.price && req.advance ? req.price - req.advance : 0), // Calculate balance if not provided
                         status: req.status || 'Pending',
                         staff: req.staff || [],
                         userId: req.userId || '',
