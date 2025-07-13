@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SearchIcon, EditIcon, TrashIcon, CheckIcon, XIcon, ImageIcon, MapPinIcon, PhoneIcon, DollarSignIcon, UserIcon, CheckCircleIcon, XCircleIcon, AlertCircleIcon, TruckIcon,CalendarIcon } from 'lucide-react';
+import { SearchIcon, EditIcon, TrashIcon, CheckIcon, XIcon, ImageIcon, MapPinIcon, PhoneIcon, DollarSignIcon, UserIcon, CheckCircleIcon, XCircleIcon, AlertCircleIcon, TruckIcon, CalendarIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import Table from '../common/Table';
@@ -18,16 +18,17 @@ interface Toast {
 
 interface PickupRequest {
   id: string;
-  username: string;
+  userName: string;
   contact: string;
   location: string;
-  imageURL: string;
+  imageUrl: string;
   date: string;
   advance: number;
   price: number;
   balance: number;
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Canceled' | 'Confirmed';
+  status: 'Pending' | 'Scheduled' | 'Completed' | 'Canceled' | 'Confirmed';
   staff: string[];
+  // Removed weight, recyclables, notes fields
 }
 
 interface Employee {
@@ -68,7 +69,6 @@ const ToastNotification = ({ toast, onRemove }: { toast: Toast; onRemove: (id: s
     const timer = setTimeout(() => {
       onRemove(toast.id);
     }, 6000);
-
     return () => clearTimeout(timer);
   }, [toast.id, onRemove]);
 
@@ -77,13 +77,11 @@ const ToastNotification = ({ toast, onRemove }: { toast: Toast; onRemove: (id: s
       initial={{ opacity: 0, x: 300, scale: 0.8 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 300, scale: 0.8 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       className={`min-w-[320px] max-w-md w-full ${getToastColors()} border rounded-xl shadow-xl p-4 mb-2 backdrop-blur-sm`}
     >
       <div className="flex items-start">
-        <div className="flex-shrink-0 mt-0.5">
-          {getToastIcon()}
-        </div>
+        <div className="flex-shrink-0 mt-0.5">{getToastIcon()}</div>
         <div className="ml-3 w-0 flex-1 pt-0.5">
           <p className="text-sm font-bold">{toast.title}</p>
           <p className="text-sm mt-1 opacity-90 leading-relaxed">{toast.message}</p>
@@ -98,7 +96,6 @@ const ToastNotification = ({ toast, onRemove }: { toast: Toast; onRemove: (id: s
           </button>
         </div>
       </div>
-      
       <motion.div
         className="mt-3 h-1 bg-black bg-opacity-10 rounded-full overflow-hidden"
         initial={{ opacity: 0 }}
@@ -107,9 +104,9 @@ const ToastNotification = ({ toast, onRemove }: { toast: Toast; onRemove: (id: s
       >
         <motion.div
           className="h-full bg-current opacity-30 rounded-full"
-          initial={{ width: "100%" }}
-          animate={{ width: "0%" }}
-          transition={{ duration: 6, ease: "linear" }}
+          initial={{ width: '100%' }}
+          animate={{ width: '0%' }}
+          transition={{ duration: 6, ease: 'linear' }}
         />
       </motion.div>
     </motion.div>
@@ -133,25 +130,28 @@ const PickupRequestManager = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<PickupRequest | null>(null);
+  const [selectedService, setSelectedService] = useState<PickupRequest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [pickupRequests, setPickupRequests] = useState<PickupRequest[]>([]);
+  const [serviceRequests, setServiceRequests] = useState<PickupRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [currentAdvance, setCurrentAdvance] = useState<number>(0);
   const [currentBalance, setCurrentBalance] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
   const [editFormData, setEditFormData] = useState({
-    username: '',
+    userName: '',
     contact: '',
     location: '',
     date: '',
     price: 0,
     advancePercentage: 0,
-    status: 'Pending' as 'Pending' | 'In Progress' | 'Completed' | 'Canceled' | 'Confirmed'
+    status: 'Pending' as PickupRequest['status'],
   });
 
   // Toast helper functions
@@ -171,42 +171,43 @@ const PickupRequestManager = () => {
 
   // Fetch pickup requests
   useEffect(() => {
-    const fetchPickupRequests = async () => {
+    const fetchServiceRequests = async () => {
       setLoading(true);
       setError(null);
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch('http://localhost:5000/api/personnel/get-all-request', {
-          headers: { Authorization: `Bearer ${token}` },
+        if (!token) throw new Error('No authentication token available');
+        const response = await fetch('http://localhost:5000/api/personnel/getall-bookings', {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
         const data = await response.json();
-        if (data.success && Array.isArray(data.allPickups)) {
-          setPickupRequests(
-            data.allPickups.map((req: any) => ({
+        if (data.success && Array.isArray(data.allBookings)) {
+          setServiceRequests(
+            data.allBookings.map((req: any) => ({
               id: req._id,
-              username: req.userName,
+              userName: req.userName,
               contact: req.contact,
               location: req.location,
-              imageURL: req.imageUrl,
+              imageUrl: req.imageUrl || '',
               date: req.date ? req.date.slice(0, 10) : '',
-              advance: req.advance,
-              price: req.price,
+              advance: req.advance || 0,
+              price: req.price || 0,
               balance: req.balance || (req.price && req.advance ? req.price - req.advance : 0),
               status: req.status,
               staff: req.staff || [],
             }))
           );
         } else {
-          setPickupRequests([]);
-          addToast('warning', 'No Data', 'No pickup requests found');
+          setServiceRequests([]);
+          addToast('warning', 'No Data', data.message || 'No bookings found');
         }
       } catch (err: any) {
-        addToast('error', 'Loading Failed', 'Failed to fetch pickup requests');
+        addToast('error', 'Loading Failed', err.message || 'Failed to fetch bookings');
       } finally {
         setLoading(false);
       }
     };
-    fetchPickupRequests();
+    fetchServiceRequests();
   }, []);
 
   // Fetch employees
@@ -214,111 +215,112 @@ const PickupRequestManager = () => {
     const fetchEmployees = async () => {
       try {
         const token = localStorage.getItem('authToken');
+        if (!token) throw new Error('No authentication token available');
         const response = await fetch('http://localhost:5000/api/personnel/all-employees', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
         const data = await response.json();
         if (data.success && Array.isArray(data.data)) {
-          setEmployees(data.data.map((emp: any) => ({
-            id: emp._id,
-            fullName: emp.fullName,
-            position: emp.position
-          })));
+          setEmployees(
+            data.data.map((emp: any) => ({
+              id: emp._id,
+              fullName: emp.fullName,
+              position: emp.position,
+            }))
+          );
         } else {
           setEmployees([]);
-          addToast('warning', 'No Employees', 'No employees available for assignment');
+          addToast('warning', 'No Employees', data.message || 'No employees available for assignment');
         }
-      } catch (err) {
+      } catch (err: any) {
         setEmployees([]);
-        addToast('error', 'Loading Failed', 'Failed to fetch employees');
+        addToast('error', 'Loading Failed', err.message || 'Failed to fetch employees');
       }
     };
     fetchEmployees();
   }, []);
 
+  // Fetch assigned employee details for view modal
+  useEffect(() => {
+    const fetchAssignedEmployees = async () => {
+      if (selectedService && isViewModalOpen && selectedService.staff && selectedService.staff.length > 0) {
+        try {
+          const token = localStorage.getItem('authToken');
+          if (!token) throw new Error('No authentication token available');
+          const details = await Promise.all(
+            selectedService.staff.map(async (id: string) => {
+              const res = await fetch(`http://localhost:5000/api/personnel/get-employee/${id}`, {
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              });
+              const data = await res.json();
+              return data.success ? data.data : null;
+            })
+          );
+          setAssignedEmployees(details.filter(Boolean));
+        } catch (err: any) {
+          setAssignedEmployees([]);
+          addToast('error', 'Loading Failed', err.message || 'Failed to fetch assigned employee details');
+        }
+      } else {
+        setAssignedEmployees([]);
+      }
+    };
+    fetchAssignedEmployees();
+  }, [selectedService, isViewModalOpen]);
+
   // Initialize edit form and staff when modal opens
   useEffect(() => {
-    if (selectedRequest && isEditModalOpen) {
-      const currentAdvancePercent = selectedRequest.price > 0 && selectedRequest.advance > 0
-        ? Math.round((selectedRequest.advance / selectedRequest.price) * 100)
+    if (selectedService && isEditModalOpen) {
+      const currentAdvancePercent = selectedService.price > 0 && selectedService.advance > 0
+        ? Math.round((selectedService.advance / selectedService.price) * 100)
         : 0;
-      
       setEditFormData({
-        username: selectedRequest.username || '',
-        contact: selectedRequest.contact || '',
-        location: selectedRequest.location || '',
-        date: selectedRequest.date || '',
-        price: selectedRequest.price || 0,
+        userName: selectedService.userName || '',
+        contact: selectedService.contact || '',
+        location: selectedService.location || '',
+        date: selectedService.date || '',
+        price: selectedService.price || 0,
         advancePercentage: currentAdvancePercent,
-        status: selectedRequest.status || 'Pending'
+        status: selectedService.status || 'Pending',
       });
-      setCurrentAdvance(selectedRequest.advance || 0);
-      setCurrentBalance(selectedRequest.balance || 0);
-      setSelectedStaff(selectedRequest.staff || []);
+      setCurrentAdvance(selectedService.advance || 0);
+      setCurrentBalance(selectedService.balance || 0);
+      setSelectedStaff(selectedService.staff || []);
     } else if (!isEditModalOpen) {
-      // Reset when modal closes
       setEditFormData({
-        username: '',
+        userName: '',
         contact: '',
         location: '',
         date: '',
         price: 0,
         advancePercentage: 0,
-        status: 'Pending'
+        status: 'Pending',
       });
       setCurrentAdvance(0);
       setCurrentBalance(0);
       setSelectedStaff([]);
     }
-  }, [selectedRequest, isEditModalOpen]);
+  }, [selectedService, isEditModalOpen]);
 
   // Update advance and balance when price or advance percentage changes
   useEffect(() => {
-    if (isEditModalOpen && selectedRequest) {
+    if (isEditModalOpen && selectedService) {
       if (editFormData.advancePercentage > 0 && editFormData.price > 0) {
         const advance = Math.round((editFormData.advancePercentage / 100) * editFormData.price);
         const balance = editFormData.price - advance;
         setCurrentAdvance(advance);
         setCurrentBalance(balance);
       } else {
-        setCurrentAdvance(selectedRequest.advance || 0);
-        setCurrentBalance(selectedRequest.balance || 0);
+        setCurrentAdvance(selectedService.advance || 0);
+        setCurrentBalance(selectedService.balance || 0);
       }
     }
-  }, [editFormData.advancePercentage, editFormData.price, isEditModalOpen, selectedRequest]);
-
-  // Fetch assigned employee details for view modal
-  useEffect(() => {
-    const fetchAssignedEmployees = async () => {
-      if (selectedRequest && isViewModalOpen && selectedRequest.staff && selectedRequest.staff.length > 0) {
-        try {
-          const token = localStorage.getItem('authToken');
-          const details = await Promise.all(
-            selectedRequest.staff.map(async (id: string) => {
-              const res = await fetch(`http://localhost:5000/api/personnel/get-employee/${id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              const data = await res.json();
-              return data.success ? data.data : null;
-            })
-          );
-          setEmployees(details.filter(Boolean));
-        } catch (err) {
-          console.error('Error fetching assigned employee details:', err);
-          setEmployees([]);
-          addToast('error', 'Loading Failed', 'Failed to fetch assigned employee details');
-        }
-      } else {
-        setEmployees([]);
-      }
-    };
-    fetchAssignedEmployees();
-  }, [selectedRequest, isViewModalOpen]);
+  }, [editFormData.advancePercentage, editFormData.price, isEditModalOpen, selectedService]);
 
   const columns = [
     {
-      header: 'Username',
-      accessor: 'username',
+      header: 'User Name',
+      accessor: 'userName',
       cell: (value: string) => (
         <div className="flex items-center">
           <UserIcon size={16} className="mr-2 text-gray-400" />
@@ -352,7 +354,7 @@ const PickupRequestManager = () => {
       cell: (value: string) => (
         <div className="flex items-center">
           <CalendarIcon size={16} className="mr-2 text-gray-400" />
-          {new Date(value).toLocaleDateString()}
+          {value ? new Date(value).toLocaleDateString() : 'N/A'}
         </div>
       ),
     },
@@ -396,7 +398,7 @@ const PickupRequestManager = () => {
               ? 'bg-green-100 text-green-800'
               : value === 'Pending'
               ? 'bg-yellow-100 text-yellow-800'
-              : value === 'In Progress'
+              : value === 'Scheduled'
               ? 'bg-blue-100 text-blue-800'
               : value === 'Confirmed'
               ? 'bg-purple-100 text-purple-800'
@@ -410,7 +412,7 @@ const PickupRequestManager = () => {
     {
       header: 'Actions',
       accessor: 'id',
-      cell: (_: any, row: any) => (
+      cell: (_: any, row: PickupRequest) => (
         <div className="flex space-x-2">
           <Button
             variant="outline"
@@ -418,7 +420,7 @@ const PickupRequestManager = () => {
             icon={<CheckIcon size={14} />}
             onClick={(e) => {
               e.stopPropagation();
-              setSelectedRequest(row);
+              setSelectedService(row);
               setIsViewModalOpen(true);
             }}
           >
@@ -430,7 +432,7 @@ const PickupRequestManager = () => {
             icon={<EditIcon size={14} />}
             onClick={(e) => {
               e.stopPropagation();
-              setSelectedRequest(row);
+              setSelectedService(row);
               setIsEditModalOpen(true);
             }}
           >
@@ -442,7 +444,7 @@ const PickupRequestManager = () => {
             icon={<TrashIcon size={14} />}
             onClick={(e) => {
               e.stopPropagation();
-              setSelectedRequest(row);
+              setSelectedService(row);
               setIsDeleteModalOpen(true);
             }}
           >
@@ -453,13 +455,20 @@ const PickupRequestManager = () => {
     },
   ];
 
-  const filteredRequests = pickupRequests.filter(
+  const filteredRequests = serviceRequests.filter(
     (request) =>
-      (statusFilter === 'all' || request.status.toLowerCase() === statusFilter.toLowerCase()) &&
-      (request.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (statusFilter === 'all' || request.status === statusFilter) &&
+      (request.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         request.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
         request.contact.includes(searchTerm))
   );
+
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const totalPages = Math.ceil(filteredRequests.length / pageSize);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 p-6">
@@ -476,10 +485,10 @@ const PickupRequestManager = () => {
               </div>
               <div>
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
-                  Pickup Request Management
+                  Booking Management
                 </h1>
                 <p className="text-gray-600 mt-2 text-lg">
-                  Manage and track customer pickup requests efficiently
+                  Manage and track customer bookings efficiently
                 </p>
               </div>
             </div>
@@ -494,12 +503,12 @@ const PickupRequestManager = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  Total Requests
+                  Total Bookings
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-2">{pickupRequests.length}</p>
+                <p className="text-3xl font-bold text-gray-900 mb-2">{serviceRequests.length}</p>
                 <div className="flex items-center text-xs text-gray-500">
                   <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                  All pickup requests
+                  All bookings
                 </div>
               </div>
               <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
@@ -508,7 +517,7 @@ const PickupRequestManager = () => {
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Request Portfolio</span>
+                <span className="text-gray-500">Booking Portfolio</span>
                 <span className="text-blue-600 font-medium">Active</span>
               </div>
               <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
@@ -529,11 +538,11 @@ const PickupRequestManager = () => {
                   Pending
                 </p>
                 <p className="text-3xl font-bold text-yellow-600 mb-2">
-                  {pickupRequests.filter((r) => r.status === 'Pending').length}
+                  {serviceRequests.filter((r) => r.status === 'Pending').length}
                 </p>
                 <div className="flex items-center text-xs text-gray-500">
                   <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
-                  Awaiting pickup
+                  Awaiting action
                 </div>
               </div>
               <div className="p-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
@@ -544,10 +553,10 @@ const PickupRequestManager = () => {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-500">Pending Rate</span>
                 <span className="text-yellow-600 font-medium">
-                  {pickupRequests.length > 0
+                  {serviceRequests.length > 0
                     ? Math.round(
-                        (pickupRequests.filter((r) => r.status === 'Pending').length /
-                          pickupRequests.length) *
+                        (serviceRequests.filter((r) => r.status === 'Pending').length /
+                          serviceRequests.length) *
                           100
                       )
                     : 0}
@@ -559,10 +568,10 @@ const PickupRequestManager = () => {
                   className="bg-gradient-to-r from-yellow-400 to-orange-500 h-1.5 rounded-full transition-all duration-500"
                   style={{
                     width: `${
-                      pickupRequests.length > 0
+                      serviceRequests.length > 0
                         ? Math.round(
-                            (pickupRequests.filter((r) => r.status === 'Pending').length /
-                              pickupRequests.length) *
+                            (serviceRequests.filter((r) => r.status === 'Pending').length /
+                              serviceRequests.length) *
                               100
                           )
                         : 0
@@ -579,14 +588,14 @@ const PickupRequestManager = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  In Progress
+                  Scheduled
                 </p>
                 <p className="text-3xl font-bold text-blue-600 mb-2">
-                  {pickupRequests.filter((r) => r.status === 'In Progress').length}
+                  {serviceRequests.filter((r) => r.status === 'Scheduled').length}
                 </p>
                 <div className="flex items-center text-xs text-gray-500">
                   <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                  Currently processing
+                  Currently scheduled
                 </div>
               </div>
               <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
@@ -595,12 +604,12 @@ const PickupRequestManager = () => {
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Progress Rate</span>
+                <span className="text-gray-500">Scheduled Rate</span>
                 <span className="text-blue-600 font-medium">
-                  {pickupRequests.length > 0
+                  {serviceRequests.length > 0
                     ? Math.round(
-                        (pickupRequests.filter((r) => r.status === 'In Progress').length /
-                          pickupRequests.length) *
+                        (serviceRequests.filter((r) => r.status === 'Scheduled').length /
+                          serviceRequests.length) *
                           100
                       )
                     : 0}
@@ -612,10 +621,10 @@ const PickupRequestManager = () => {
                   className="bg-gradient-to-r from-indigo-500 to-purple-600 h-1.5 rounded-full transition-all duration-500"
                   style={{
                     width: `${
-                      pickupRequests.length > 0
+                      serviceRequests.length > 0
                         ? Math.round(
-                            (pickupRequests.filter((r) => r.status === 'In Progress').length /
-                              pickupRequests.length) *
+                            (serviceRequests.filter((r) => r.status === 'Scheduled').length /
+                              serviceRequests.length) *
                               100
                           )
                         : 0
@@ -635,11 +644,11 @@ const PickupRequestManager = () => {
                   Completed
                 </p>
                 <p className="text-3xl font-bold text-green-600 mb-2">
-                  {pickupRequests.filter((r) => r.status === 'Completed').length}
+                  {serviceRequests.filter((r) => r.status === 'Completed').length}
                 </p>
                 <div className="flex items-center text-xs text-gray-500">
                   <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                  Successfully picked up
+                  Successfully completed
                 </div>
               </div>
               <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
@@ -650,10 +659,10 @@ const PickupRequestManager = () => {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-500">Completion Rate</span>
                 <span className="text-green-600 font-medium">
-                  {pickupRequests.length > 0
+                  {serviceRequests.length > 0
                     ? Math.round(
-                        (pickupRequests.filter((r) => r.status === 'Completed').length /
-                          pickupRequests.length) *
+                        (serviceRequests.filter((r) => r.status === 'Completed').length /
+                          serviceRequests.length) *
                           100
                       )
                     : 0}
@@ -665,10 +674,10 @@ const PickupRequestManager = () => {
                   className="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full transition-all duration-500"
                   style={{
                     width: `${
-                      pickupRequests.length > 0
+                      serviceRequests.length > 0
                         ? Math.round(
-                            (pickupRequests.filter((r) => r.status === 'Completed').length /
-                              pickupRequests.length) *
+                            (serviceRequests.filter((r) => r.status === 'Completed').length /
+                              serviceRequests.length) *
                               100
                           )
                         : 0
@@ -689,7 +698,7 @@ const PickupRequestManager = () => {
               <div className="flex justify-center mb-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
               </div>
-              <p className="text-gray-600 text-lg font-medium">Loading pickup requests...</p>
+              <p className="text-gray-600 text-lg font-medium">Loading bookings...</p>
               <p className="text-gray-400 text-sm mt-1">Please wait while we fetch your data</p>
             </div>
           ) : error ? (
@@ -713,7 +722,7 @@ const PickupRequestManager = () => {
                       />
                       <input
                         type="text"
-                        placeholder="Search pickup requests by customer name..."
+                        placeholder="Search bookings by customer name..."
                         className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm hover:border-gray-300 transition-colors duration-200"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -726,11 +735,11 @@ const PickupRequestManager = () => {
                       <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="admin-dropdown admin-dropdown-primary"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-gray-700"
                       >
                         <option value="all">All Statuses</option>
                         <option value="Pending">Pending</option>
-                        <option value="In Progress">In Progress</option>
+                        <option value="Scheduled">Scheduled</option>
                         <option value="Completed">Completed</option>
                         <option value="Canceled">Canceled</option>
                         <option value="Confirmed">Confirmed</option>
@@ -742,14 +751,14 @@ const PickupRequestManager = () => {
 
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                  <h4 className="text-lg font-semibold text-gray-800">Pickup Requests</h4>
+                  <h4 className="text-lg font-semibold text-gray-800">Bookings</h4>
                 </div>
                 <div className="overflow-x-auto">
                   <Table
                     columns={columns}
-                    data={filteredRequests}
+                    data={paginatedRequests}
                     onRowClick={(row) => {
-                      setSelectedRequest(row);
+                      setSelectedService(row);
                       setIsViewModalOpen(true);
                     }}
                   />
@@ -758,19 +767,33 @@ const PickupRequestManager = () => {
 
               <div className="flex justify-between items-center mt-6 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600">
-                  Showing {filteredRequests.length} of {pickupRequests.length} pickup requests
+                  Showing {paginatedRequests.length} of {filteredRequests.length} bookings
                 </p>
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
                     Previous
                   </Button>
-                  <Button variant="outline" size="sm" className="bg-blue-50 border-blue-400 text-blue-700">
-                    1
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    2
-                  </Button>
-                  <Button variant="outline" size="sm">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
                     Next
                   </Button>
                 </div>
@@ -780,25 +803,25 @@ const PickupRequestManager = () => {
         </motion.div>
 
         <Modal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} title="" size="lg">
-          {selectedRequest && (
+          {selectedService && (
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 -m-6 p-8 rounded-t-lg">
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Pickup Request Details</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Booking Details</h2>
                 <div className="flex justify-center">
                   <span
                     className={`px-4 py-2 text-sm font-semibold rounded-full shadow-sm ${
-                      selectedRequest.status === 'Completed'
+                      selectedService.status === 'Completed'
                         ? 'bg-green-100 text-green-800 border border-green-200'
-                        : selectedRequest.status === 'Pending'
+                        : selectedService.status === 'Pending'
                         ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                        : selectedRequest.status === 'In Progress'
+                        : selectedService.status === 'Scheduled'
                         ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                        : selectedRequest.status === 'Confirmed'
+                        : selectedService.status === 'Confirmed'
                         ? 'bg-purple-100 text-purple-800 border border-purple-200'
                         : 'bg-red-100 text-red-800 border border-red-200'
                     }`}
                   >
-                    {selectedRequest.status}
+                    {selectedService.status}
                   </span>
                 </div>
               </div>
@@ -815,50 +838,33 @@ const PickupRequestManager = () => {
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
                       <div className="flex items-center">
                         <UserIcon size={18} className="mr-3 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-600">Username</span>
+                        <span className="text-sm font-medium text-gray-600">User Name</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">{selectedRequest.username}</span>
+                      <span className="text-sm font-semibold text-gray-900">{selectedService.userName}</span>
                     </div>
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
                       <div className="flex items-center">
                         <PhoneIcon size={18} className="mr-3 text-gray-400" />
                         <span className="text-sm font-medium text-gray-600">Contact</span>
                       </div>
-                      <span className="text-sm text-gray-900 font-mono">{selectedRequest.contact}</span>
+                      <span className="text-sm text-gray-900 font-mono">{selectedService.contact}</span>
                     </div>
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
                       <div className="flex items-center">
                         <MapPinIcon size={18} className="mr-3 text-gray-400" />
                         <span className="text-sm font-medium text-gray-600">Location</span>
                       </div>
-                      <span className="text-sm text-gray-900">{selectedRequest.location}</span>
+                      <span className="text-sm text-gray-900">{selectedService.location}</span>
                     </div>
                     <div className="flex items-center justify-between py-3">
                       <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-600 ml-6">Pickup Date</span>
+                        <CalendarIcon size={18} className="mr-3 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-600">Booking Date</span>
                       </div>
-                      <span className="text-sm text-gray-900">{new Date(selectedRequest.date).toLocaleDateString()}</span>
+                      <span className="text-sm text-gray-900">
+                        {selectedService.date ? new Date(selectedService.date).toLocaleDateString() : 'N/A'}
+                      </span>
                     </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Pickup Location Image</h3>
-                    {selectedRequest.imageURL ? (
-                      <img
-                        src={selectedRequest.imageURL}
-                        alt="Pickup location"
-                        className="w-full h-48 object-cover rounded-xl border border-gray-200 shadow-sm"
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border border-gray-200">
-                        <div className="text-center">
-                          <ImageIcon size={48} className="text-gray-400 mx-auto mb-2" />
-                          <p className="text-gray-500 text-sm">No image available</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
@@ -870,7 +876,7 @@ const PickupRequestManager = () => {
                           <span className="text-sm font-medium text-gray-600">Total Price</span>
                         </div>
                         <span className="text-lg font-bold text-gray-900">
-                          LKR {selectedRequest.price.toLocaleString()}
+                          LKR {selectedService.price.toLocaleString()}
                         </span>
                       </div>
                       <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
@@ -879,7 +885,7 @@ const PickupRequestManager = () => {
                           <span className="text-sm font-medium text-blue-600">Advance Payment</span>
                         </div>
                         <span className="text-lg font-bold text-blue-700">
-                          LKR {selectedRequest.advance.toLocaleString()}
+                          LKR {selectedService.advance.toLocaleString()}
                         </span>
                       </div>
                       <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl">
@@ -888,7 +894,7 @@ const PickupRequestManager = () => {
                           <span className="text-sm font-medium text-red-600">Remaining Balance</span>
                         </div>
                         <span className="text-lg font-bold text-red-700">
-                          LKR {selectedRequest.balance.toLocaleString()}
+                          LKR {selectedService.balance.toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -899,26 +905,23 @@ const PickupRequestManager = () => {
               <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 mb-8">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Assigned Employees</h3>
                 <div className="flex flex-wrap gap-3">
-                  {selectedRequest.staff && selectedRequest.staff.length > 0 ? (
-                    selectedRequest.staff.map((staffId) => {
-                      const employee = employees.find((emp) => emp.id === staffId);
-                      return employee ? (
-                        <div
-                          key={staffId}
-                          className="flex items-center bg-green-50 text-green-700 px-4 py-3 rounded-xl border border-green-200 shadow-sm"
-                        >
-                          <UserIcon size={16} className="mr-3 flex-shrink-0" />
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-sm">{employee.fullName}</span>
-                            <span className="text-xs text-green-600">{employee.position || 'Employee'}</span>
-                          </div>
+                  {assignedEmployees.length > 0 ? (
+                    assignedEmployees.map((employee) => (
+                      <div
+                        key={employee.id}
+                        className="flex items-center bg-green-50 text-green-700 px-4 py-3 rounded-xl border border-green-200 shadow-sm"
+                      >
+                        <UserIcon size={16} className="mr-3 flex-shrink-0" />
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-sm">{employee.fullName}</span>
+                          <span className="text-xs text-green-600">{employee.position || 'Employee'}</span>
                         </div>
-                      ) : null;
-                    })
+                      </div>
+                    ))
                   ) : (
                     <div className="text-center py-8 w-full">
                       <UserIcon size={32} className="text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-500">No employees assigned to this pickup request</p>
+                      <p className="text-gray-500">No employees assigned to this booking</p>
                     </div>
                   )}
                 </div>
@@ -941,7 +944,7 @@ const PickupRequestManager = () => {
                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                   icon={<EditIcon size={16} />}
                 >
-                  Edit Request
+                  Edit Booking
                 </Button>
               </div>
             </div>
@@ -951,10 +954,10 @@ const PickupRequestManager = () => {
         <Modal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          title="Edit Pickup Request"
+          title="Edit Booking"
           size="lg"
         >
-          {selectedRequest && (
+          {selectedService && (
             <form
               className="space-y-6"
               onSubmit={async (e) => {
@@ -963,51 +966,45 @@ const PickupRequestManager = () => {
                 setError(null);
                 try {
                   const token = localStorage.getItem('authToken');
-                  const formData = new FormData();
-                  formData.append(
-                    'requestPickupData',
-                    JSON.stringify({
-                      userName: editFormData.username,
-                      contact: editFormData.contact,
-                      location: editFormData.location,
-                      date: editFormData.date,
-                      staff: selectedStaff,
-                      advance: currentAdvance,
-                      price: editFormData.price,
-                      balance: currentBalance,
-                      status: editFormData.status,
-                    })
-                  );
-                  const res = await fetch(
-                    `http://localhost:5000/api/personnel/update-request/${selectedRequest.id}`,
-                    {
-                      method: 'PATCH',
-                      headers: {
-                        Authorization: `Bearer ${token}`,
+                  if (!token) throw new Error('No authentication token available');
+                  const response = await fetch('http://localhost:5000/api/personnel/update-booking', {
+                    method: 'PUT',
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      serviceBookData: {
+                        _id: selectedService.id,
+                        userName: editFormData.userName,
+                        contact: editFormData.contact,
+                        location: editFormData.location,
+                        date: editFormData.date,
+                        staff: selectedStaff,
+                        advance: currentAdvance,
+                        price: editFormData.price,
+                        balance: currentBalance,
+                        status: editFormData.status,
                       },
-                      body: formData,
-                    }
-                  );
-                  const data = await res.json();
+                    }),
+                  });
+                  const data = await response.json();
                   if (data.success) {
-                    const response = await fetch(
-                      'http://localhost:5000/api/personnel/get-all-request',
-                      {
-                        headers: { Authorization: `Bearer ${token}` },
-                      }
-                    );
-                    const newData = await response.json();
-                    if (newData.success && Array.isArray(newData.allPickups)) {
-                      setPickupRequests(
-                        newData.allPickups.map((req: any) => ({
+                    const fetchResponse = await fetch('http://localhost:5000/api/personnel/getall-bookings', {
+                      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    });
+                    const newData = await fetchResponse.json();
+                    if (newData.success && Array.isArray(newData.allBookings)) {
+                      setServiceRequests(
+                        newData.allBookings.map((req: any) => ({
                           id: req._id,
-                          username: req.userName,
+                          userName: req.userName,
                           contact: req.contact,
                           location: req.location,
-                          imageURL: req.imageUrl,
+                          imageUrl: req.imageUrl || '',
                           date: req.date ? req.date.slice(0, 10) : '',
-                          advance: req.advance,
-                          price: req.price,
+                          advance: req.advance || 0,
+                          price: req.price || 0,
                           balance: req.balance || (req.price && req.advance ? req.price - req.advance : 0),
                           status: req.status,
                           staff: req.staff || [],
@@ -1015,12 +1012,12 @@ const PickupRequestManager = () => {
                       );
                     }
                     setIsEditModalOpen(false);
-                    addToast('success', 'Request Updated', 'Pickup request has been updated successfully');
+                    addToast('success', 'Booking Updated', data.message || 'Booking has been updated successfully');
                   } else {
-                    addToast('error', 'Update Failed', 'Failed to update pickup request');
+                    addToast('error', 'Update Failed', data.message || 'Failed to update booking');
                   }
                 } catch (err: any) {
-                  addToast('error', 'Update Failed', 'Failed to update pickup request');
+                  addToast('error', 'Update Failed', err.message || 'Failed to update booking');
                 } finally {
                   setLoading(false);
                 }
@@ -1028,25 +1025,19 @@ const PickupRequestManager = () => {
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label
-                    htmlFor="edit-username"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
-                    Username
+                  <label htmlFor="edit-userName" className="block text-sm font-semibold text-gray-700 mb-2">
+                    User Name
                   </label>
                   <input
                     type="text"
-                    id="edit-username"
+                    id="edit-userName"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
-                    value={editFormData.username}
-                    disabled
+                    value={editFormData.userName}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, userName: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="edit-contact"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
+                  <label htmlFor="edit-contact" className="block text-sm font-semibold text-gray-700 mb-2">
                     Contact
                   </label>
                   <input
@@ -1054,14 +1045,11 @@ const PickupRequestManager = () => {
                     id="edit-contact"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                     value={editFormData.contact}
-                    disabled
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, contact: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="edit-location"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
+                  <label htmlFor="edit-location" className="block text-sm font-semibold text-gray-700 mb-2">
                     Location
                   </label>
                   <input
@@ -1069,49 +1057,40 @@ const PickupRequestManager = () => {
                     id="edit-location"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                     value={editFormData.location}
-                    disabled
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, location: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="edit-date"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
-                    Pickup Date
+                  <label htmlFor="edit-date" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Booking Date
                   </label>
                   <input
                     type="date"
                     id="edit-date"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                     value={editFormData.date}
-                    disabled
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, date: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="edit-status"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
+                  <label htmlFor="edit-status" className="block text-sm font-semibold text-gray-700 mb-2">
                     Status
                   </label>
                   <select
                     id="edit-status"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={editFormData.status}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, status: e.target.value as PickupRequest['status'] }))}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, status: e.target.value as PickupRequest['status'] }))}
                   >
                     <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
+                    <option value="Scheduled">Scheduled</option>
                     <option value="Completed">Completed</option>
                     <option value="Canceled">Canceled</option>
                     <option value="Confirmed">Confirmed</option>
                   </select>
                 </div>
                 <div>
-                  <label
-                    htmlFor="edit-price"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
+                  <label htmlFor="edit-price" className="block text-sm font-semibold text-gray-700 mb-2">
                     Price (LKR)
                   </label>
                   <input
@@ -1119,15 +1098,12 @@ const PickupRequestManager = () => {
                     id="edit-price"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={editFormData.price}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, price: Number(e.target.value) || 0 }))}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, price: Number(e.target.value) || 0 }))}
                     min={0}
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="edit-advance-percent"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
+                  <label htmlFor="edit-advance-percent" className="block text-sm font-semibold text-gray-700 mb-2">
                     Advance Percentage (%)
                   </label>
                   <input
@@ -1135,16 +1111,13 @@ const PickupRequestManager = () => {
                     id="edit-advance-percent"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={editFormData.advancePercentage}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, advancePercentage: Number(e.target.value) || 0 }))}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, advancePercentage: Number(e.target.value) || 0 }))}
                     min={0}
                     max={100}
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="edit-advance"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
+                  <label htmlFor="edit-advance" className="block text-sm font-semibold text-gray-700 mb-2">
                     Advance Payment (LKR)
                   </label>
                   <input
@@ -1157,10 +1130,7 @@ const PickupRequestManager = () => {
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="edit-balance"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
+                  <label htmlFor="edit-balance" className="block text-sm font-semibold text-gray-700 mb-2">
                     Balance (LKR) {editFormData.advancePercentage > 0 ? '- Auto Calculated' : ''}
                   </label>
                   <input
@@ -1170,15 +1140,15 @@ const PickupRequestManager = () => {
                     value={currentBalance}
                     disabled
                     readOnly
-                    placeholder={editFormData.advancePercentage > 0 ? 'Auto-calculated' : `DB Value: ${selectedRequest?.balance || 0}`}
+                    placeholder={editFormData.advancePercentage > 0 ? 'Auto-calculated' : `DB Value: ${selectedService?.balance || 0}`}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {editFormData.advancePercentage > 0 
-                      ? `Auto-calculated from ${editFormData.advancePercentage}% advance` 
-                      : `View only - cannot be edited`
-                    }
+                    {editFormData.advancePercentage > 0
+                      ? `Auto-calculated from ${editFormData.advancePercentage}% advance`
+                      : `View only - cannot be edited`}
                   </p>
                 </div>
+                {/* Removed weight, recyclables, and notes fields as requested */}
                 <div className="col-span-1 md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Assign Employees
@@ -1188,13 +1158,15 @@ const PickupRequestManager = () => {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32"
                     value={selectedStaff}
                     onChange={(e) => {
-                      const options = Array.from(e.target.selectedOptions, option => option.value);
+                      const options = Array.from(e.target.selectedOptions, (option) => option.value);
                       const uniqueOptions = Array.from(new Set(options));
                       setSelectedStaff(uniqueOptions);
                     }}
                   >
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.fullName}
+                      </option>
                     ))}
                   </select>
                   <p className="text-xs text-gray-500 mt-2">
@@ -1206,22 +1178,22 @@ const PickupRequestManager = () => {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    if (selectedRequest) {
-                      const currentAdvancePercent = selectedRequest.price > 0 && selectedRequest.advance > 0
-                        ? Math.round((selectedRequest.advance / selectedRequest.price) * 100)
+                    if (selectedService) {
+                      const currentAdvancePercent = selectedService.price > 0 && selectedService.advance > 0
+                        ? Math.round((selectedService.advance / selectedService.price) * 100)
                         : 0;
                       setEditFormData({
-                        username: selectedRequest.username || '',
-                        contact: selectedRequest.contact || '',
-                        location: selectedRequest.location || '',
-                        date: selectedRequest.date || '',
-                        price: selectedRequest.price || 0,
+                        userName: selectedService.userName || '',
+                        contact: selectedService.contact || '',
+                        location: selectedService.location || '',
+                        date: selectedService.date || '',
+                        price: selectedService.price || 0,
                         advancePercentage: currentAdvancePercent,
-                        status: selectedRequest.status || 'Pending'
+                        status: selectedService.status || 'Pending',
                       });
-                      setCurrentAdvance(selectedRequest.advance || 0);
-                      setCurrentBalance(selectedRequest.balance || 0);
-                      setSelectedStaff(selectedRequest.staff || []);
+                      setCurrentAdvance(selectedService.advance || 0);
+                      setCurrentBalance(selectedService.balance || 0);
+                      setSelectedStaff(selectedService.staff || []);
                     }
                     setIsEditModalOpen(false);
                   }}
@@ -1230,7 +1202,7 @@ const PickupRequestManager = () => {
                   Cancel
                 </Button>
                 <Button type="submit" variant="primary" className="px-6 py-2.5 shadow-sm">
-                  Update Pickup Request
+                  Update Booking
                 </Button>
               </div>
             </form>
@@ -1240,32 +1212,33 @@ const PickupRequestManager = () => {
         <Modal
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
-          title="Delete Pickup Request"
+          title="Delete Booking"
         >
-          {selectedRequest && (
+          {selectedService && (
             <div className="text-center">
               <div className="p-4 bg-red-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <TrashIcon size={32} className="text-red-500" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Pickup Request</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Booking</h3>
               <p className="text-gray-600 mb-6">
-                Are you sure you want to delete the pickup request for{' '}
-                <span className="font-semibold text-gray-900">{selectedRequest.username}</span>? This
+                Are you sure you want to delete the booking for{' '}
+                <span className="font-semibold text-gray-900">{selectedService.userName}</span>? This
                 action cannot be undone and all associated data will be permanently removed.
               </p>
               <div className="bg-gray-50 rounded-xl p-4 mb-6">
                 <div className="text-sm text-gray-600 space-y-1">
                   <p>
-                    <span className="font-medium">Customer:</span> {selectedRequest.username}
+                    <span className="font-medium">Customer:</span> {selectedService.userName}
                   </p>
                   <p>
-                    <span className="font-medium">Location:</span> {selectedRequest.location}
+                    <span className="font-medium">Location:</span> {selectedService.location}
                   </p>
                   <p>
-                    <span className="font-medium">Date:</span> {new Date(selectedRequest.date).toLocaleDateString()}
+                    <span className="font-medium">Date:</span>{' '}
+                    {selectedService.date ? new Date(selectedService.date).toLocaleDateString() : 'N/A'}
                   </p>
                   <p>
-                    <span className="font-medium">Status:</span> {selectedRequest.status}
+                    <span className="font-medium">Status:</span> {selectedService.status}
                   </p>
                 </div>
               </div>
@@ -1283,48 +1256,51 @@ const PickupRequestManager = () => {
                     setLoading(true);
                     try {
                       const token = localStorage.getItem('authToken');
-                      await fetch(
-                        `http://localhost:5000/api/personnel/delete-pickup-request/${selectedRequest.id}`,
+                      if (!token) throw new Error('No authentication token available');
+                      const response = await fetch(
+                        `http://localhost:5000/api/personnel/delete-booking/${selectedService.id}`,
                         {
                           method: 'DELETE',
-                          headers: { Authorization: `Bearer ${token}` },
-                        }
-                      );
-                      const response = await fetch(
-                        'http://localhost:5000/api/personnel/get-all-request',
-                        {
-                          headers: { Authorization: `Bearer ${token}` },
+                          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                         }
                       );
                       const data = await response.json();
-                      if (data.success && Array.isArray(data.allPickups)) {
-                        setPickupRequests(
-                          data.allPickups.map((req: any) => ({
-                            id: req._id,
-                            username: req.userName,
-                            contact: req.contact,
-                            location: req.location,
-                            imageURL: req.imageUrl,
-                            date: req.date ? req.date.slice(0, 10) : '',
-                            advance: req.advance,
-                            price: req.price,
-                            balance: req.balance || (req.price && req.advance ? req.price - req.advance : 0),
-                            status: req.status,
-                            staff: req.staff || [],
-                          }))
-                        );
+                      if (data.success) {
+                        const fetchResponse = await fetch('http://localhost:5000/api/personnel/getall-bookings', {
+                          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        });
+                        const newData = await fetchResponse.json();
+                        if (newData.success && Array.isArray(newData.allBookings)) {
+                          setServiceRequests(
+                            newData.allBookings.map((req: any) => ({
+                              id: req._id,
+                              userName: req.userName,
+                              contact: req.contact,
+                              location: req.location,
+                              imageUrl: req.imageUrl || '',
+                              date: req.date ? req.date.slice(0, 10) : '',
+                              advance: req.advance || 0,
+                              price: req.price || 0,
+                              balance: req.balance || (req.price && req.advance ? req.price - req.advance : 0),
+                              status: req.status,
+                              staff: req.staff || [],
+                            }))
+                          );
+                        }
+                        setIsDeleteModalOpen(false);
+                        addToast('success', 'Booking Deleted', data.message || 'Booking has been deleted successfully');
+                      } else {
+                        addToast('error', 'Delete Failed', data.message || 'Failed to delete booking');
                       }
-                      setIsDeleteModalOpen(false);
-                      addToast('success', 'Request Deleted', 'Pickup request has been deleted successfully');
-                    } catch (err) {
-                      addToast('error', 'Delete Failed', 'Failed to delete pickup request');
+                    } catch (err: any) {
+                      addToast('error', 'Delete Failed', err.message || 'Failed to delete booking');
                     } finally {
                       setLoading(false);
                     }
                   }}
                   className="px-6 py-2.5 shadow-sm"
                 >
-                  Delete Request
+                  Delete Booking
                 </Button>
               </div>
             </div>
