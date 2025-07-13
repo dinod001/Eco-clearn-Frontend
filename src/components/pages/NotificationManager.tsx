@@ -214,20 +214,16 @@ const NotificationManager = () => {
     setLoading(true);
     setError(null);
     const token = localStorage.getItem('authToken');
-    console.log('Notification token:', token);
-    
     try {
-      const response = await axios.get('http://localhost:5000/api/personnel/getAll-notification', {
+      const response = await axios.get('http://localhost:5000/api/personnel/get-all-notifications', {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
           'Content-Type': 'application/json'
         }
       });
-
       const data = response.data;
-      console.log('Fetch notifications response:', data);
-
       if (data.success && Array.isArray(data.data)) {
+        // Map notifications
         const mapped = data.data.map((item: any) => ({
           id: item._id,
           title: item.title,
@@ -239,7 +235,16 @@ const NotificationManager = () => {
           readCount: undefined,
           totalRecipients: undefined
         }));
-        setNotifications(mapped);
+        // If there are multiple notifications with the same title/message/type/status, keep only one (for send-to-all)
+        const unique = Object.values(
+          mapped.reduce((acc: any, curr: any) => {
+            // Use a composite key for notifications sent to all users
+            const key = `${curr.title}|${curr.message}|${curr.type}|${curr.status}`;
+            acc[key] = curr;
+            return acc;
+          }, {})
+        );
+        setNotifications(unique as Notification[]);
       } else {
         addToast('error', 'Failed to Load Notifications', 'Unable to fetch notification data from the server.');
       }
