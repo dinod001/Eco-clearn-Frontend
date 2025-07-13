@@ -12,7 +12,7 @@ const Sidebar = ({
   toggleSidebar
 }: SidebarProps) => {
   const location = useLocation();
-  const { user, hasAccess } = useAuth();
+  const { user, hasAccess, logout } = useAuth();
   
   // You can fetch real counts here when API endpoints are available
   const [counts] = useState({
@@ -241,7 +241,13 @@ const Sidebar = ({
               </div>
               
               <div className="flex items-center space-x-1">
-                <button className="p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all duration-200">
+                <button 
+                  className="p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all duration-200"
+                  onClick={() => {
+                    logout();
+                  }}
+                  aria-label="Logout"
+                >
                   <LogOutIcon size={16} />
                 </button>
               </div>
