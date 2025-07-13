@@ -99,6 +99,15 @@ const Sidebar = ({
     requiredRole: 'employees'
   }];
 
+  // Add Blog management page to sidebar
+  sidebarItems.push({
+    name: 'Blogs',
+    path: '/blogs',
+    icon: <ClipboardCheckIcon size={20} />, // You can use a different icon if preferred
+    badge: null,
+    requiredRole: 'blogs'
+  });
+
   // Filter sidebar items based on user role
   const filteredSidebarItems = sidebarItems.filter(item => hasAccess(item.requiredRole));
   const sidebarVariants = {

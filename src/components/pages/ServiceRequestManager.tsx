@@ -1150,51 +1150,62 @@ const PickupRequestManager = () => {
                 </div>
                 {/* Removed weight, recyclables, and notes fields as requested */}
                 <div className="col-span-1 md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Assign Employees
-                  </label>
-                  <select
-                    multiple
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32"
-                    value={selectedStaff}
-                    onChange={(e) => {
-                      const options = Array.from(e.target.selectedOptions, (option) => option.value);
-                      const uniqueOptions = Array.from(new Set(options));
-                      setSelectedStaff(uniqueOptions);
-                    }}
-                  >
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.fullName}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Hold Ctrl/Cmd to select multiple employees
-                  </p>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Assign Employees</label>
+                  <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {selectedStaff.length === 0 && (
+                        <span className="text-xs text-gray-400">No employees assigned yet</span>
+                      )}
+                      {selectedStaff.map((id) => {
+                        const emp = employees.find((e) => e.id === id);
+                        if (!emp) return null;
+                        return (
+                          <span key={id} className="inline-flex items-center bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-200 shadow-sm text-xs font-medium mr-2 mb-2">
+                            <UserIcon size={14} className="mr-1" />
+                            {emp.fullName}
+                            <button type="button" className="ml-2 text-red-400 hover:text-red-600" onClick={() => setSelectedStaff(selectedStaff.filter((sid) => sid !== id))}>
+                              <XIcon size={12} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        placeholder="Search employees..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+                        onChange={e => {
+                          const val = e.target.value.toLowerCase();
+                          setEmployees(prev => prev.map(emp => ({ ...emp, _filtered: emp.fullName.toLowerCase().includes(val) })));
+                        }}
+                      />
+                      <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2">
+                        {employees.filter(emp => !selectedStaff.includes(emp.id)).map(emp => (
+                          <button
+                            key={emp.id}
+                            type="button"
+                            className="inline-flex items-center bg-white hover:bg-blue-50 text-gray-700 px-3 py-1 rounded-full border border-gray-200 shadow-sm text-xs font-medium mr-2 mb-2 transition-all duration-150"
+                            onClick={() => setSelectedStaff([...selectedStaff, emp.id])}
+                          >
+                            <UserIcon size={14} className="mr-1" />
+                            {emp.fullName}
+                            {emp.position && <span className="ml-2 text-gray-400">({emp.position})</span>}
+                          </button>
+                        ))}
+                        {employees.filter(emp => !selectedStaff.includes(emp.id)).length === 0 && (
+                          <span className="text-xs text-gray-400">No more employees to assign</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
                 <Button
                   variant="outline"
+                  type="button"
                   onClick={() => {
-                    if (selectedService) {
-                      const currentAdvancePercent = selectedService.price > 0 && selectedService.advance > 0
-                        ? Math.round((selectedService.advance / selectedService.price) * 100)
-                        : 0;
-                      setEditFormData({
-                        userName: selectedService.userName || '',
-                        contact: selectedService.contact || '',
-                        location: selectedService.location || '',
-                        date: selectedService.date || '',
-                        price: selectedService.price || 0,
-                        advancePercentage: currentAdvancePercent,
-                        status: selectedService.status || 'Pending',
-                      });
-                      setCurrentAdvance(selectedService.advance || 0);
-                      setCurrentBalance(selectedService.balance || 0);
-                      setSelectedStaff(selectedService.staff || []);
-                    }
                     setIsEditModalOpen(false);
                   }}
                   className="px-6 py-2.5 shadow-sm"

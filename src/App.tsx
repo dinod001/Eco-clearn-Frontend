@@ -18,6 +18,7 @@ import CustomerManager from './components/pages/CustomerManager';
 import InquiryManager from './components/pages/InquiryManager';
 import NotificationManager from './components/pages/NotificationManager';
 import EmployeeManager from './components/pages/EmployeeManager';
+import BlogManager from './components/pages/BlogManager';
 // Login redirect component - redirects to dashboard if already authenticated
 const LoginRedirect = () => {
   const { isAuthenticated } = useAuth();
@@ -159,6 +160,11 @@ export function App() {
           <Route path="/employees" element={<ProtectedRoute>
                 <AdminLayout>
                   <EmployeeManager />
+                </AdminLayout>
+              </ProtectedRoute>} />
+          <Route path="/blogs" element={<ProtectedRoute>
+                <AdminLayout>
+                  <BlogManager />
                 </AdminLayout>
               </ProtectedRoute>} />
         </Routes>
